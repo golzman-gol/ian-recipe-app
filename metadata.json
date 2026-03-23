@@ -1,0 +1,5 @@
+{
+  "name": "Culinary Lab",
+  "description": "A personal recipe management PWA with AI parsing, dynamic scaling, and a hands-free cooking mode.",
+  "requestFramePermissions": []
+}
