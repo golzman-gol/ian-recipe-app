@@ -1,158 +1,85 @@
-import { useState, useMemo } from 'react';
-import { Recipe, Technique, ReferenceLink } from '../types';
-import { ArrowLeft, Search, ExternalLink, Youtube, Link as LinkIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Technique, Recipe } from '../types';
+import { ArrowLeft, Edit2, BookOpen, Trash2, Video, Link, Share, Download } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
-interface SourceDiscoveryProps {
+interface TechniqueViewProps {
+  technique: Technique;
   recipes: Recipe[];
-  techniques: Technique[];
   onBack: () => void;
+  onEdit: () => void;
+  onDelete: (id: string) => void;
   onSelectRecipe: (id: string) => void;
-  onSelectTechnique: (id: string) => void;
+  onTagClick: (tag: string) => void;
 }
 
-interface AggregatedSource {
-  id: string;
-  url: string;
-  note: string;
-  channelName?: string;
-  sourceType: 'recipe' | 'technique';
-  sourceId: string;
-  sourceName: string;
-}
+export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, onSelectRecipe, onTagClick }: TechniqueViewProps) {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const associatedRecipes = recipes.filter(r => r.linkedTechniques?.includes(technique.id));
 
-export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, onSelectTechnique }: SourceDiscoveryProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const getYoutubeData = (url?: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+    const match = url.match(regExp);
+    const id = (match && match[2].length === 11) ? match[2] : null;
+    if (!id) return null;
+    return {
+      embed: `https://www.youtube.com/embed/${id}`,
+      direct: `https://www.youtube.com/watch?v=${id}`
+    };
+  };
 
-  const allSources = useMemo(() => {
-    const sources: AggregatedSource[] = [];
-
-    recipes.forEach(recipe => {
-      if (recipe.reference_videos) {
-        recipe.reference_videos.forEach((ref, index) => {
-          sources.push({
-            id: `recipe-${recipe.id}-${index}`,
-            url: ref.url,
-            note: ref.note,
-            channelName: ref.channelName,
-            sourceType: 'recipe',
-            sourceId: recipe.id,
-            sourceName: recipe.name
-          });
-        });
-      }
-    });
-
-    techniques.forEach(technique => {
-      if (technique.reference_videos) {
-        technique.reference_videos.forEach((ref, index) => {
-          sources.push({
-            id: `technique-${technique.id}-${index}`,
-            url: ref.url,
-            note: ref.note,
-            channelName: ref.channelName,
-            sourceType: 'technique',
-            sourceId: technique.id,
-            sourceName: technique.title
-          });
-        });
-      }
-    });
-
-    return sources;
-  }, [recipes, techniques]);
-
-  const filteredSources = useMemo(() => {
-    if (!searchQuery) return allSources;
-    const lowerQuery = searchQuery.toLowerCase();
-    return allSources.filter(s => 
-      (s.channelName && s.channelName.toLowerCase().includes(lowerQuery)) ||
-      s.note.toLowerCase().includes(lowerQuery) ||
-      s.sourceName.toLowerCase().includes(lowerQuery) ||
-      s.url.toLowerCase().includes(lowerQuery)
-    );
-  }, [allSources, searchQuery]);
-
-  const isYoutube = (url: string) => {
-    return url.includes('youtube.com') || url.includes('youtu.be');
+  const handleDownloadHtml = () => {
+    const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${technique.title}</title><style>body{font-family:sans-serif;max-width:800px;margin:0 auto;padding:2rem}h1{color:#18181b}.hero-image{width:100%;border-radius:1rem}</style></head><body>${technique.image_base64?`<img src="${technique.image_base64}" class="hero-image">`:''}<h1>${technique.title}</h1><p>${technique.overview}</p><div>${technique.content}</div></body></html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${technique.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`;
+    a.click();
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 pb-24">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 transition-colors mb-8"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span>Back to Home</span>
-      </button>
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 mb-2">Source Discovery</h1>
-        <p className="text-zinc-500">Explore all references, videos, and links across your culinary lab.</p>
+    <div className="max-w-3xl mx-auto px-4 py-8 pb-32">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <button onClick={onBack} className="p-3 -ml-3 rounded-full hover:bg-zinc-100"><ArrowLeft className="w-7 h-7" /></button>
+        <div className="flex gap-2">
+          <button onClick={handleDownloadHtml} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100"><Download className="w-6 h-6" /></button>
+          <button onClick={onEdit} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100"><Edit2 className="w-6 h-6" /></button>
+          <button onClick={() => setShowDeleteConfirm(true)} className="p-3 rounded-full text-red-600 hover:bg-red-50"><Trash2 className="w-6 h-6" /></button>
+        </div>
       </div>
 
-      <div className="relative mb-8">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-zinc-400" />
-        </div>
-        <input
-          type="text"
-          className="block w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-2xl leading-5 bg-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 sm:text-sm transition-all shadow-sm"
-          placeholder="Search by channel name, note, or source..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+      {technique.image_base64 && <div className="mb-8 rounded-3xl overflow-hidden aspect-video border"><img src={technique.image_base64} className="w-full h-full object-cover" /></div>}
+      <h1 className="text-4xl font-bold mb-4">{technique.title}</h1>
 
-      {filteredSources.length === 0 ? (
-        <div className="text-center py-12 text-zinc-500">
-          <p className="text-lg">No sources found.</p>
-          <p className="text-sm mt-2">Try adjusting your search query.</p>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredSources.map(source => (
-            <div key={source.id} className="bg-white border border-zinc-200 rounded-2xl p-5 flex flex-col hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-zinc-900">
-                  {isYoutube(source.url) ? (
-                    <Youtube className="w-4 h-4 text-red-500" />
+      {/* References - FIXED FOR IOS */}
+      {technique.reference_videos && technique.reference_videos.length > 0 && (
+        <div className="mb-10 space-y-6">
+          <h2 className="text-2xl font-bold flex items-center gap-2"><Link /> References</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {technique.reference_videos.map((video, idx) => {
+              const ytData = getYoutubeData(video.url);
+              return (
+                <div key={idx} className="bg-white border rounded-2xl overflow-hidden flex flex-col shadow-sm">
+                  {ytData ? (
+                    <div className="aspect-video"><iframe width="100%" height="100%" src={ytData.embed} frameBorder="0" allowFullScreen></iframe></div>
                   ) : (
-                    <LinkIcon className="w-4 h-4 text-blue-500" />
+                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="aspect-video bg-zinc-100 flex items-center justify-center"><Link className="text-zinc-400" /></a>
                   )}
-                  <span className="truncate max-w-[150px]" title={source.channelName || new URL(source.url).hostname}>
-                    {source.channelName || new URL(source.url).hostname}
-                  </span>
+                  <div className="p-3 bg-zinc-50 flex-1">
+                    <a href={ytData?.direct || video.url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-zinc-900 block mb-1 hover:underline">OPEN VIDEO</a>
+                    <p className="text-xs text-zinc-600 line-clamp-2">{video.note}</p>
+                  </div>
                 </div>
-                <a 
-                  href={source.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-zinc-400 hover:text-zinc-900 transition-colors"
-                  title="Open Link"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-              
-              <p className="text-zinc-700 text-sm mb-4 flex-1 line-clamp-3" title={source.note}>
-                {source.note || "No description provided."}
-              </p>
-              
-              <div className="pt-4 border-t border-zinc-100 mt-auto">
-                <div className="text-xs text-zinc-500 mb-2">Referenced in:</div>
-                <button
-                  onClick={() => source.sourceType === 'recipe' ? onSelectRecipe(source.sourceId) : onSelectTechnique(source.sourceId)}
-                  className="text-left w-full text-sm font-medium text-zinc-900 hover:text-blue-600 transition-colors truncate"
-                  title={source.sourceName}
-                >
-                  {source.sourceName}
-                </button>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
       )}
+
+      <div className="prose prose-zinc max-w-none mb-12"><ReactMarkdown>{technique.content}</ReactMarkdown></div>
     </div>
   );
 }
