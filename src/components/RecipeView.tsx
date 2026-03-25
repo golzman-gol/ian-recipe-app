@@ -274,7 +274,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
 
       {/* Notes - EDITABLE & NO OPACITY */}
       <div className="border-t border-zinc-200 pt-10 print:hidden">
-        <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-6">Lab Notes</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-6">Notes</h2>
         <div className="flex flex-col sm:flex-row gap-3 mb-8">
           <input type="text" value={newNote} onChange={(e) => setNewNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddNote()} placeholder="Add a new observation..." className="flex-1 border border-zinc-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-zinc-900 bg-zinc-50 text-lg outline-none" />
           <button onClick={handleAddNote} disabled={!newNote.trim()} className="bg-zinc-900 text-white px-8 py-4 rounded-2xl font-medium disabled:opacity-50">Add Note</button>
