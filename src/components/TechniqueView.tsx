@@ -1,5 +1,5 @@
 import { Technique, Recipe } from '../types';
-import { ArrowLeft, Edit2, Trash2, Link, BookOpen, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Link, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface TechniqueViewProps {
@@ -30,9 +30,7 @@ export function TechniqueView({ technique, onBack, onEdit, onDelete }: Technique
           <button onClick={() => onDelete(technique.id)} className="p-3 rounded-full text-red-600 hover:bg-red-50"><Trash2 className="w-6 h-6" /></button>
         </div>
       </div>
-
       <h1 className="text-4xl font-bold mb-6">{technique.title}</h1>
-
       {technique.reference_videos && technique.reference_videos.length > 0 && (
         <div className="mb-10 border-t pt-8">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2"><ExternalLink className="w-6 h-6" /> References</h2>
@@ -40,11 +38,10 @@ export function TechniqueView({ technique, onBack, onEdit, onDelete }: Technique
             {technique.reference_videos.map((video, idx) => {
               const yt = getYoutubeData(video.url);
               return (
-                <div key={idx} className="bg-white border rounded-2xl overflow-hidden shadow-sm flex flex-col">
-                  {yt ? <div className="aspect-video"><iframe width="100%" height="100%" src={yt.embed} frameBorder="0" allowFullScreen></iframe></div> : <div className="aspect-video bg-zinc-100 flex items-center justify-center"><Link /></div>}
+                <div key={idx} className="bg-white border rounded-2xl overflow-hidden flex flex-col shadow-sm">
+                  {yt ? <div className="aspect-video"><iframe width="100%" height="100%" src={yt.embed} frameBorder="0" allowFullScreen></iframe></div> : <div className=\"aspect-video bg-zinc-100 flex items-center justify-center\"><Link /></div>}
                   <div className="p-3 bg-zinc-50">
                     <a href={yt?.direct || video.url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-zinc-900 bg-white border border-zinc-200 px-2 py-1.5 rounded block text-center mb-1 hover:bg-zinc-50 transition-colors uppercase">Open Video</a>
-                    <p className="text-xs text-zinc-600 line-clamp-1">{video.note}</p>
                   </div>
                 </div>
               );
@@ -52,7 +49,6 @@ export function TechniqueView({ technique, onBack, onEdit, onDelete }: Technique
           </div>
         </div>
       )}
-
       <div className="prose prose-zinc max-w-none"><ReactMarkdown>{technique.content}</ReactMarkdown></div>
     </div>
   );
