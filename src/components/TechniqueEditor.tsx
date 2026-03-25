@@ -1,308 +1,247 @@
-import { useState, useRef } from 'react';
-import { Technique, ReferenceLink } from '../types';
-import { ArrowLeft, Save, Trash2, Image as ImageIcon, Plus, Loader2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Recipe, RecipeNote, Technique } from '../types';
+import { ArrowLeft, Play, Plus, Clock, ChefHat, Trash2, Edit3, Image as ImageIcon, AlertTriangle, Video, BookOpen, ThermometerSnowflake, Link, Share, Download, Check, X as CloseIcon } from 'lucide-react';
+import { CookingMode } from './CookingMode';
 
-interface TechniqueEditorProps {
-  initialTechnique?: Technique;
-  allTags?: string[];
-  onSave: (technique: Technique) => void;
-  onCancel: () => void;
-  onDelete?: (id: string) => void;
+interface RecipeViewProps {
+  recipe: Recipe;
+  recipes: Recipe[];
+  techniques: Technique[];
+  onBack: () => void;
+  onUpdateRecipe: (updated: Recipe) => void;
+  onDeleteRecipe: (id: string) => void;
+  onEdit: () => void;
+  onSelectTechnique: (id: string) => void;
+  onSelectRecipe: (id: string) => void;
+  onTagClick: (tag: string) => void;
 }
 
-export function TechniqueEditor({ initialTechnique, allTags = [], onSave, onCancel, onDelete }: TechniqueEditorProps) {
-  const [title, setTitle] = useState(initialTechnique?.title || '');
-  const [overview, setOverview] = useState(initialTechnique?.overview || '');
-  const [content, setContent] = useState(initialTechnique?.content || '');
-  const [tags, setTags] = useState<string[]>(initialTechnique?.tags || []);
-  const [tagInput, setTagInput] = useState('');
-  const [showTagDropdown, setShowTagDropdown] = useState(false);
-  const [imageBase64, setImageBase64] = useState<string | undefined>(initialTechnique?.image_base64);
-  const [referenceVideos, setReferenceVideos] = useState<ReferenceLink[]>(initialTechnique?.reference_videos || []);
-  const [fetchingVideoIdx, setFetchingVideoIdx] = useState<number | null>(null);
+export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe, onDeleteRecipe, onEdit, onSelectTechnique, onSelectRecipe, onTagClick }: RecipeViewProps) {
+  const [multiplier, setMultiplier] = useState<number>(1);
+  const [customMultiplier, setCustomMultiplier] = useState<string>('');
+  const [isCookingMode, setIsCookingMode] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // States for Note Editing
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState('');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const multipliers = [0.5, 1, 2, 3];
+  const activeMultiplier = customMultiplier ? parseFloat(customMultiplier) || 1 : multiplier;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImageBase64(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+  const scaledIngredients = useMemo(() => {
+    return recipe.ingredients.map((ing) => ({
+      ...ing,
+      amount: ing.amount * activeMultiplier,
+    }));
+  }, [recipe.ingredients, activeMultiplier]);
+
+  const handleAddNote = () => {
+    if (!newNote.trim()) return;
+    const note: RecipeNote = {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      text: newNote.trim(),
+    };
+    onUpdateRecipe({
+      ...recipe,
+      notes: [note, ...recipe.notes],
+    });
+    setNewNote('');
   };
 
-  const addReferenceVideo = () => {
-    setReferenceVideos([...referenceVideos, { url: '', note: '' }]);
+  const handleStartEditNote = (note: RecipeNote) => {
+    setEditingNoteId(note.id);
+    setEditingNoteText(note.text);
   };
 
-  const updateReferenceVideo = async (index: number, field: keyof ReferenceLink, value: string) => {
-    const newVideos = [...referenceVideos];
-    newVideos[index] = { ...newVideos[index], [field]: value };
-    setReferenceVideos(newVideos);
-
-    if (field === 'url' && (value.includes('youtube.com') || value.includes('youtu.be') || value.includes('shorts/'))) {
-      setFetchingVideoIdx(index);
-      try {
-        const res = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(value)}`);
-        const data = await res.json();
-        if (data && !data.error) {
-          const updatedVideos = [...newVideos];
-          updatedVideos[index] = {
-            ...updatedVideos[index],
-            thumbnailUrl: data.thumbnail_url,
-            channelName: data.author_name,
-            note: updatedVideos[index].note || data.title || ''
-          };
-          setReferenceVideos(updatedVideos);
-        }
-      } catch (e) {
-        console.error("Failed to fetch YouTube metadata", e);
-      } finally {
-        setFetchingVideoIdx(null);
-      }
-    }
+  const handleSaveEditedNote = () => {
+    if (!editingNoteId) return;
+    const updatedNotes = recipe.notes.map(n => 
+      n.id === editingNoteId ? { ...n, text: editingNoteText.trim() } : n
+    );
+    onUpdateRecipe({ ...recipe, notes: updatedNotes });
+    setEditingNoteId(null);
   };
 
-  const removeReferenceVideo = (index: number) => {
-    const newVideos = [...referenceVideos];
-    newVideos.splice(index, 1);
-    setReferenceVideos(newVideos);
-  };
-
-  const filteredTags = allTags.filter(t => 
-    t.includes(tagInput.toLowerCase()) && !tags.includes(t)
-  );
-
-  const handleAddTag = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      addTag(tagInput);
-    }
-  };
-
-  const addTag = (tag: string) => {
-    const newTag = tag.trim().toLowerCase();
-    if (!tags.includes(newTag)) {
-      setTags([...tags, newTag]);
-    }
-    setTagInput('');
-    setShowTagDropdown(false);
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(t => t !== tagToRemove));
-  };
-
-  const handleSave = () => {
-    if (!title.trim()) return;
-    onSave({
-      id: initialTechnique?.id || Date.now().toString(),
-      title: title.trim(),
-      overview: overview.trim(),
-      content: content.trim(),
-      tags,
-      image_base64: imageBase64,
-      reference_videos: referenceVideos
+  const handleDeleteNote = (noteId: string) => {
+    onUpdateRecipe({
+      ...recipe,
+      notes: recipe.notes.filter((n) => n.id !== noteId),
     });
   };
 
+  const getYoutubeData = (url?: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+    const match = url.match(regExp);
+    const id = (match && match[2].length === 11) ? match[2] : null;
+    if (!id) return null;
+    return {
+      embed: `https://www.youtube.com/embed/${id}`,
+      direct: `https://www.youtube.com/watch?v=${id}`
+    };
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: recipe.name,
+          text: `Check out this recipe for ${recipe.name}!`,
+          url: window.location.href,
+        });
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      alert('Sharing is not supported on this browser.');
+    }
+  };
+
+  const handleDownloadHtml = () => {
+    const htmlContent = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${recipe.name}</title><style>body{font-family:system-ui,sans-serif;line-height:1.6;color:#18181b;max-width:800px;margin:0 auto;padding:2rem;background:#fafafa}.container{background:white;padding:2.5rem;border-radius:1.5rem;shadow:0 4px 6px -1px rgb(0 0 0/0.1)}h1{font-size:2.5rem;margin-bottom:1rem}.hero-image{width:100%;max-height:400px;object-fit:cover;border-radius:1rem;margin-bottom:2rem}.tag{background:#f4f4f5;padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.875rem;margin-right:0.5rem}.info-box{background:#fef2f2;border:1px solid #fecaca;padding:1.5rem;border-radius:1rem;margin-bottom:2rem}</style></head><body><div class="container">${recipe.image_base64?`<img src="${recipe.image_base64}" class="hero-image">`:''}<h1>${recipe.name}</h1><div class="meta">${recipe.tags?.map(t=>`<span class="tag">${t}</span>`).join('')||''}</div>${recipe.prep_info?`<div class="info-box"><h3>Crucial Prep Info</h3><p>${recipe.prep_info}</p></div>`:''}<h2>Ingredients</h2><ul>${recipe.ingredients.map(i=>`<li><strong>${i.amount} ${i.unit}</strong> ${i.item}</li>`).join('')}</ul><h2>Instructions</h2><ol>${recipe.steps.map(s=>`<li>${s}</li>`).join('')}</ol></div></body></html>`;
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${recipe.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`;
+    a.click();
+  };
+
+  if (isCookingMode) return <CookingMode recipe={{ ...recipe, ingredients: scaledIngredients }} onExit={() => setIsCookingMode(false)} />;
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 pb-24">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <button onClick={onCancel} className="p-3 -ml-3 rounded-full hover:bg-zinc-100 transition-colors">
-            <ArrowLeft className="w-7 h-7 text-zinc-900" />
-          </button>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
-            {initialTechnique ? 'Edit Technique' : 'New Technique'}
-          </h1>
+    <div className="max-w-3xl mx-auto px-4 py-8 pb-32">
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-xl">
+            <h3 className="text-xl font-bold mb-2">Delete Recipe?</h3>
+            <p className="text-zinc-600 mb-6">Are you sure you want to delete "{recipe.name}"?</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 px-4 py-3 rounded-xl bg-zinc-100 font-medium">Cancel</button>
+              <button onClick={() => onDeleteRecipe(recipe.id)} className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-medium">Delete</button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {initialTechnique && onDelete && (
-            <button
-              onClick={() => onDelete(initialTechnique.id)}
-              className="p-3 text-red-600 hover:bg-red-50 rounded-full transition-colors"
-            >
-              <Trash2 className="w-6 h-6" />
-            </button>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={!title.trim()}
-            className="flex items-center gap-2 px-6 py-3 bg-zinc-900 text-white rounded-full font-medium hover:bg-zinc-800 disabled:opacity-50 transition-colors"
-          >
-            <Save className="w-5 h-5" />
-            Save
-          </button>
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <button onClick={onBack} className="p-3 -ml-3 rounded-full hover:bg-zinc-100 transition-colors">
+          <ArrowLeft className="w-7 h-7 text-zinc-900" />
+        </button>
+        <div className="flex gap-2">
+          <button onClick={handleShare} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100"><Share className="w-6 h-6" /></button>
+          <button onClick={handleDownloadHtml} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100"><Download className="w-6 h-6" /></button>
+          <button onClick={() => setIsCookingMode(true)} className="flex items-center gap-2 bg-zinc-900 text-white px-5 py-3 rounded-full font-medium shadow-sm"><ChefHat className="w-5 h-5" /> Cook</button>
+          <button onClick={onEdit} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100"><Edit3 className="w-6 h-6" /></button>
+          <button onClick={() => setShowDeleteConfirm(true)} className="p-3 rounded-full text-red-600 hover:bg-red-50"><Trash2 className="w-6 h-6" /></button>
         </div>
       </div>
 
-      <div className="space-y-8">
-        {/* Image Upload */}
-        <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
-          <label className="block text-sm font-medium text-zinc-500 mb-3">Technique Image</label>
-          {imageBase64 ? (
-            <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
-              <img src={imageBase64} alt="Technique" className="w-full h-full object-cover" />
-              <button
-                onClick={() => setImageBase64(undefined)}
-                className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 backdrop-blur-sm"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
-          ) : (
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-zinc-300 rounded-2xl p-8 flex flex-col items-center justify-center text-zinc-500 hover:bg-zinc-50 hover:border-zinc-400 cursor-pointer transition-colors aspect-video"
-            >
-              <ImageIcon className="w-10 h-10 mb-3 text-zinc-400" />
-              <span className="font-medium">Tap to upload image</span>
-            </div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-            className="hidden"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-2">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-2xl font-bold border-b-2 border-zinc-200 focus:border-zinc-900 py-2 focus:outline-none bg-transparent placeholder:text-zinc-300"
-            placeholder="e.g., Cold Fermentation"
-          />
-        </div>
-
-        <div className="relative">
-          <label className="block text-sm font-medium text-zinc-700 mb-2">Tags</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {tags.map(tag => (
-              <span key={tag} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-zinc-100 text-zinc-800">
-                {tag}
-                <button onClick={() => removeTag(tag)} className="hover:text-red-500">&times;</button>
-              </span>
+      {/* Content */}
+      {recipe.image_base64 && <div className="mb-8 rounded-3xl overflow-hidden aspect-video border border-zinc-200"><img src={recipe.image_base64} className="w-full h-full object-cover" /></div>}
+      <h1 className="text-4xl font-bold mb-4">{recipe.name}</h1>
+      
+      {/* Scaling */}
+      <div className="bg-white rounded-3xl p-6 mb-10 border border-zinc-200">
+        <div className="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+          <h2 className="text-2xl font-bold">Ingredients</h2>
+          <div className="flex gap-2">
+            {multipliers.map(m => (
+              <button key={m} onClick={() => {setMultiplier(m); setCustomMultiplier('')}} className={`px-4 py-2 rounded-full font-medium ${multiplier === m && !customMultiplier ? 'bg-zinc-900 text-white' : 'bg-zinc-100'}`}>{m}x</button>
             ))}
           </div>
-          <input
-            type="text"
-            value={tagInput}
-            onChange={(e) => {
-              setTagInput(e.target.value);
-              setShowTagDropdown(true);
-            }}
-            onFocus={() => setShowTagDropdown(true)}
-            onBlur={() => setTimeout(() => setShowTagDropdown(false), 200)}
-            onKeyDown={handleAddTag}
-            className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
-            placeholder="Type a tag and press Enter..."
-          />
-          {showTagDropdown && tagInput && filteredTags.length > 0 && (
-            <div className="absolute z-10 w-full mt-2 bg-white border border-zinc-200 rounded-2xl shadow-lg max-h-60 overflow-y-auto">
-              {filteredTags.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => addTag(tag)}
-                  className="w-full text-left px-4 py-3 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none first:rounded-t-2xl last:rounded-b-2xl"
-                >
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-800">
-                    {tag}
-                  </span>
-                </button>
-              ))}
+        </div>
+        <ul className="space-y-4">
+          {scaledIngredients.map((ing, idx) => (
+            <li key={idx} className="flex items-baseline gap-4 py-3 border-b border-zinc-50 last:border-0">
+              <span className="font-mono font-bold w-20 text-right">{ing.amount.toFixed(ing.amount % 1 === 0 ? 0 : 2)}</span>
+              <span className="text-zinc-500 w-20">{ing.unit}</span>
+              <span className="font-medium flex-1">{ing.item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Instructions */}
+      <div className="mb-12 bg-white rounded-3xl p-6 border border-zinc-200">
+        <h2 className="text-2xl font-bold mb-8">Instructions</h2>
+        <div className="space-y-8">
+          {recipe.steps.map((step, idx) => (
+            <div key={idx} className="flex gap-5">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center font-bold">{idx + 1}</div>
+              <p className="text-zinc-800 text-lg leading-relaxed">{step}</p>
             </div>
-          )}
+          ))}
         </div>
+      </div>
 
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-2">Overview</label>
-          <textarea
-            value={overview}
-            onChange={(e) => setOverview(e.target.value)}
-            className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white min-h-[100px]"
-            placeholder="Brief summary of the technique..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-zinc-700 mb-2">Guide Content (Markdown)</label>
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white min-h-[400px] font-mono text-sm leading-relaxed"
-            placeholder="# Technique Details&#10;&#10;Explain the science and process here..."
-          />
-        </div>
-
-        {/* References */}
-        <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm space-y-6">
-          <div className="flex items-center justify-between mb-4">
-            <label className="block text-lg font-semibold text-zinc-900">References</label>
-            <button
-              onClick={addReferenceVideo}
-              className="flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-zinc-900 bg-zinc-100 px-3 py-1.5 rounded-full"
-            >
-              <Plus className="w-4 h-4" /> Add
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            {referenceVideos.map((video, idx) => (
-              <div key={idx} className="flex gap-4 items-start bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
-                {video.thumbnailUrl && (
-                  <div className="w-32 flex-shrink-0 rounded-xl overflow-hidden aspect-video bg-zinc-200">
-                    <img src={video.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div className="flex-1 space-y-3">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={video.url}
-                      onChange={(e) => updateReferenceVideo(idx, 'url', e.target.value)}
-                      className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white pr-10"
-                      placeholder="URL (YouTube, blog, paper...)"
-                    />
-                    {fetchingVideoIdx === idx && (
-                      <div className="absolute right-3 top-2.5">
-                        <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    type="text"
-                    value={video.note}
-                    onChange={(e) => updateReferenceVideo(idx, 'note', e.target.value)}
-                    className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
-                    placeholder="Description (e.g., Main Source, Kneading Technique)"
-                  />
-                  {video.channelName && (
-                    <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                      Channel: {video.channelName}
-                    </p>
+      {/* References - FIXED FOR IOS */}
+      {recipe.reference_videos && recipe.reference_videos.length > 0 && (
+        <div className="border-t pt-10 mb-10">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2"><Link className="w-6 h-6" /> References</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {recipe.reference_videos.map((video, idx) => {
+              const ytData = getYoutubeData(video.url);
+              return (
+                <div key={idx} className="bg-white border rounded-2xl overflow-hidden flex flex-col shadow-sm">
+                  {ytData ? (
+                    <div className="aspect-video">
+                      <iframe width="100%" height="100%" src={ytData.embed} frameBorder="0" allowFullScreen></iframe>
+                    </div>
+                  ) : (
+                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="aspect-video bg-zinc-100 flex items-center justify-center"><Link className="text-zinc-400" /></a>
                   )}
+                  <div className="p-3 bg-zinc-50 flex-1">
+                    {/* Universal link for iOS */}
+                    <a href={ytData?.direct || video.url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-zinc-900 block mb-1 hover:underline">OPEN IN YOUTUBE</a>
+                    <p className="text-xs text-zinc-600 line-clamp-2">{video.note}</p>
+                  </div>
                 </div>
-                <button
-                  onClick={() => removeReferenceVideo(idx)}
-                  className="p-3 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-            ))}
-            {referenceVideos.length === 0 && (
-              <p className="text-zinc-500 text-sm italic">No references added.</p>
-            )}
+              );
+            })}
           </div>
+        </div>
+      )}
+
+      {/* Notes - WITH EDITING AND MOBILE FIX */}
+      <div className="border-t pt-10">
+        <h2 className="text-2xl font-bold mb-6">Notes</h2>
+        <div className="flex gap-3 mb-8">
+          <input type="text" value={newNote} onChange={(e) => setNewNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddNote()} placeholder="Add a note..." className="flex-1 border rounded-2xl px-5 py-4 bg-zinc-50" />
+          <button onClick={handleAddNote} disabled={!newNote.trim()} className="bg-zinc-900 text-white px-8 rounded-2xl font-medium">Add</button>
+        </div>
+
+        <div className="space-y-4">
+          {recipe.notes.map((note) => (
+            <div key={note.id} className="bg-white border rounded-3xl p-6 shadow-sm relative group">
+              <div className="flex items-center gap-2 text-xs text-zinc-500 mb-3 font-bold uppercase">
+                <Clock className="w-4 h-4" /> {new Date(note.timestamp).toLocaleDateString()}
+              </div>
+              
+              {editingNoteId === note.id ? (
+                <div className="space-y-3">
+                  <textarea value={editingNoteText} onChange={(e) => setEditingNoteText(e.target.value)} className="w-full border rounded-xl p-3 focus:ring-2 focus:ring-zinc-900 outline-none" rows={3} />
+                  <div className="flex gap-2">
+                    <button onClick={handleSaveEditedNote} className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1"><Check className="w-4 h-4" /> Save</button>
+                    <button onClick={() => setEditingNoteId(null)} className="bg-zinc-100 text-zinc-600 px-4 py-2 rounded-lg text-sm flex items-center gap-1"><CloseIcon className="w-4 h-4" /> Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-zinc-800 text-lg pr-12">{note.text}</p>
+                  <div className="absolute top-5 right-5 flex gap-1 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleStartEditNote(note)} className="p-2 text-zinc-400 hover:text-zinc-900 bg-zinc-50 rounded-full" aria-label="Edit note"><Edit3 className="w-5 h-5" /></button>
+                    <button onClick={() => handleDeleteNote(note.id)} className="p-2 text-zinc-400 hover:text-red-600 bg-red-50 rounded-full" aria-label="Delete note"><Trash2 className="w-5 h-5" /></button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
