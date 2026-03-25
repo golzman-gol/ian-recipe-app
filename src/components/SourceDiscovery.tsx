@@ -1,63 +1,77 @@
 import { useState } from 'react';
-import { Technique, Recipe } from '../types';
-import { ArrowLeft, Edit2, BookOpen, Trash2, Link, Download, ExternalLink } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { Technique } from '../types';
+import { ArrowLeft, BookOpen, Globe, Search } from 'lucide-react';
 
-interface TechniqueViewProps {
-  technique: Technique;
-  recipes: Recipe[];
+interface SourceDiscoveryProps {
+  techniques: Technique[];
   onBack: () => void;
-  onEdit: () => void;
-  onDelete: (id: string) => void;
-  onSelectRecipe: (id: string) => void;
-  onTagClick: (tag: string) => void;
+  onSelectTechnique: (id: string) => void;
 }
 
-export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, onSelectRecipe, onTagClick }: TechniqueViewProps) {
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+export function SourceDiscovery({ techniques, onBack, onSelectTechnique }: SourceDiscoveryProps) {
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const getYoutubeData = (url?: string) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
-    const match = url.match(regExp);
-    const id = (match && match[2].length === 11) ? match[2] : null;
-    if (!id) return null;
-    return { embed: `https://www.youtube.com/embed/${id}`, direct: `https://www.youtube.com/watch?v=${id}` };
-  };
+  const filteredTechniques = techniques.filter(tech => 
+    tech.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tech.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 pb-32">
-      <div className="flex items-center justify-between mb-8">
-        <button onClick={onBack} className="p-3 -ml-3"><ArrowLeft className="w-7 h-7" /></button>
-        <div className="flex gap-2">
-          <button onClick={onEdit} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100"><Edit2 className="w-6 h-6" /></button>
-          <button onClick={() => setShowDeleteConfirm(true)} className="p-3 rounded-full text-red-600 hover:bg-red-50"><Trash2 className="w-6 h-6" /></button>
-        </div>
+    <div className="max-w-3xl mx-auto px-4 py-8 pb-24">
+      <div className="flex items-center gap-4 mb-8">
+        <button 
+          onClick={onBack} 
+          className="p-3 -ml-3 rounded-full hover:bg-zinc-100 transition-colors"
+          aria-label="Back"
+        >
+          <ArrowLeft className="w-7 h-7 text-zinc-900" />
+        </button>
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-900 flex items-center gap-3">
+          <Globe className="w-8 h-8 text-zinc-400" />
+          Source Discovery
+        </h1>
       </div>
 
-      <h1 className="text-4xl font-bold mb-6">{technique.title}</h1>
-
-      {technique.reference_videos && technique.reference_videos.length > 0 && (
-        <div className="mb-10 space-y-6">
-          <h2 className="text-2xl font-bold flex items-center gap-2"><ExternalLink /> References</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {technique.reference_videos.map((video, idx) => {
-              const yt = getYoutubeData(video.url);
-              return (
-                <div key={idx} className="bg-white border rounded-2xl overflow-hidden flex flex-col shadow-sm">
-                  {yt ? <div className="aspect-video"><iframe width="100%" height="100%" src={yt.embed} frameBorder="0" allowFullScreen></iframe></div> : <div className="aspect-video bg-zinc-100 flex items-center justify-center"><Link /></div>}
-                  <div className="p-3 bg-zinc-50">
-                    <a href={yt?.direct || video.url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-zinc-900 bg-white border border-zinc-200 px-2 py-1 rounded block text-center mb-1">OPEN VIDEO</a>
-                    <p className="text-xs text-zinc-600 line-clamp-1">{video.note}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <div className="relative mb-8">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-zinc-400" />
         </div>
-      )}
+        <input
+          type="text"
+          className="block w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-2xl bg-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 shadow-sm"
+          placeholder="Search techniques or sources..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
 
-      <div className="prose prose-zinc max-w-none"><ReactMarkdown>{technique.content}</ReactMarkdown></div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {filteredTechniques.map(tech => (
+          <div
+            key={tech.id}
+            onClick={() => onSelectTechnique(tech.id)}
+            className="border border-zinc-200 rounded-2xl p-5 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] bg-white flex flex-col"
+          >
+            <div className="flex items-center gap-2 mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500">
+              <BookOpen className="w-4 h-4" /> Technique
+            </div>
+            <h3 className="text-lg font-semibold text-zinc-900 mb-2">{tech.title}</h3>
+            <p className="text-sm text-zinc-600 line-clamp-2 flex-1">{tech.overview}</p>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {tech.tags?.map(tag => (
+                <span key={tag} className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100 text-zinc-800">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+        {filteredTechniques.length === 0 && (
+          <div className="col-span-full text-center py-12 text-zinc-500 italic">
+            No techniques found matching your search.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
