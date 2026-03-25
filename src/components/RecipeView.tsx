@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Recipe, RecipeNote, Technique } from '../types';
-import { ArrowLeft, Play, Plus, Clock, ChefHat, Trash2, Edit3, Image as ImageIcon, AlertTriangle, Video, BookOpen, ThermometerSnowflake, Link, Share, Download } from 'lucide-react';
+import { ArrowLeft, Play, Plus, Clock, ChefHat, Trash2, Edit3, Image as ImageIcon, AlertTriangle, Video, BookOpen, ThermometerSnowflake, Link, Share, Check, X } from 'lucide-react';
 import { CookingMode } from './CookingMode';
 
 interface RecipeViewProps {
@@ -22,9 +22,12 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
   const [isCookingMode, setIsCookingMode] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // States for Editing Notes
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingNoteText, setEditingNoteText] = useState('');
 
   const multipliers = [0.5, 1, 2, 3];
-
   const activeMultiplier = customMultiplier ? parseFloat(customMultiplier) || 1 : multiplier;
 
   const scaledIngredients = useMemo(() => {
@@ -55,7 +58,15 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
     });
   };
 
-  // Extract YouTube ID for embed
+  const handleSaveEditedNote = () => {
+    if (!editingNoteId) return;
+    const updatedNotes = recipe.notes.map(n => 
+      n.id === editingNoteId ? { ...n, text: editingNoteText.trim() } : n
+    );
+    onUpdateRecipe({ ...recipe, notes: updatedNotes });
+    setEditingNoteId(null);
+  };
+
   const getYoutubeEmbedUrl = (url?: string) => {
     if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
@@ -77,137 +88,6 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
     } else {
       alert('Sharing is not supported on this browser.');
     }
-  };
-
-  const handleDownloadHtml = () => {
-    const htmlContent = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${recipe.name}</title>
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      line-height: 1.6;
-      color: #18181b;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-      background: #fafafa;
-    }
-    .container {
-      background: white;
-      padding: 2.5rem;
-      border-radius: 1.5rem;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    }
-    h1 {
-      font-size: 2.5rem;
-      font-weight: 800;
-      margin-top: 0;
-      margin-bottom: 1rem;
-      letter-spacing: -0.025em;
-    }
-    .hero-image {
-      width: 100%;
-      max-height: 400px;
-      object-fit: cover;
-      border-radius: 1rem;
-      margin-bottom: 2rem;
-    }
-    h2 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-top: 2.5rem;
-      margin-bottom: 1rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 2px solid #f4f4f5;
-    }
-    ul, ol {
-      padding-left: 1.5rem;
-    }
-    li {
-      margin-bottom: 0.75rem;
-    }
-    .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 2rem;
-    }
-    .tag {
-      background: #f4f4f5;
-      padding: 0.25rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-    .info-box {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      padding: 1.5rem;
-      border-radius: 1rem;
-      margin-bottom: 2rem;
-    }
-    .info-box.blue {
-      background: #eff6ff;
-      border-color: #bfdbfe;
-    }
-    .info-box h3 {
-      margin-top: 0;
-      margin-bottom: 0.5rem;
-      font-size: 1.125rem;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    ${recipe.image_base64 ? `<img src="${recipe.image_base64}" alt="${recipe.name}" class="hero-image">` : ''}
-    <h1>${recipe.name}</h1>
-    
-    <div class="meta">
-      ${recipe.tags?.map(t => `<span class="tag">${t}</span>`).join('') || ''}
-    </div>
-
-    ${recipe.prep_info ? `
-    <div class="info-box">
-      <h3>Crucial Prep Info</h3>
-      <p style="margin:0; white-space: pre-wrap;">${recipe.prep_info}</p>
-    </div>` : ''}
-
-    ${recipe.storage_info ? `
-    <div class="info-box blue">
-      <h3>Storage & Expiry</h3>
-      <p style="margin:0; white-space: pre-wrap;">${recipe.storage_info}</p>
-    </div>` : ''}
-
-    <h2>Ingredients (Base: ${recipe.servings_base} servings)</h2>
-    <ul>
-      ${recipe.ingredients.map(i => `<li><strong>${i.amount} ${i.unit}</strong> ${i.item}</li>`).join('')}
-    </ul>
-
-    <h2>Instructions</h2>
-    <ol>
-      ${recipe.steps.map(s => `<li>${s}</li>`).join('')}
-    </ol>
-
-    ${recipe.culinary_notes ? `
-    <h2>Culinary Notes</h2>
-    <p style="white-space: pre-wrap;">${recipe.culinary_notes}</p>
-    ` : ''}
-  </div>
-</body>
-</html>`;
-
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${recipe.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   if (isCookingMode) {
@@ -264,14 +144,6 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
             aria-label="Share Recipe"
           >
             <Share className="w-6 h-6" />
-          </button>
-          <button
-            onClick={handleDownloadHtml}
-            className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100 transition-colors"
-            aria-label="Download as HTML"
-            title="Download as HTML"
-          >
-            <Download className="w-6 h-6" />
           </button>
           <button
             onClick={() => setIsCookingMode(true)}
@@ -570,14 +442,54 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
                     minute: '2-digit'
                   })}
                 </div>
-                <p className="text-zinc-800 leading-relaxed text-lg">{note.text}</p>
-                <button
-                  onClick={() => handleDeleteNote(note.id)}
-                  className="absolute top-5 right-5 p-3 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                  aria-label="Delete note"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
+                
+                {editingNoteId === note.id ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={editingNoteText}
+                      onChange={(e) => setEditingNoteText(e.target.value)}
+                      className="w-full border border-zinc-200 rounded-xl p-3 bg-zinc-50 focus:ring-2 focus:ring-zinc-900 outline-none text-lg"
+                      rows={3}
+                    />
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={handleSaveEditedNote}
+                        className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1 font-bold"
+                      >
+                        <Check className="w-4 h-4" /> Save
+                      </button>
+                      <button 
+                        onClick={() => setEditingNoteId(null)}
+                        className="bg-zinc-100 text-zinc-600 px-4 py-2 rounded-lg text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-zinc-800 leading-relaxed text-lg pr-20">{note.text}</p>
+                    <div className="absolute top-5 right-5 flex gap-1">
+                      <button
+                        onClick={() => {
+                          setEditingNoteId(note.id);
+                          setEditingNoteText(note.text);
+                        }}
+                        className="p-2 text-zinc-400 hover:text-zinc-900 bg-zinc-50 rounded-full transition-all"
+                        aria-label="Edit note"
+                      >
+                        <Edit3 className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteNote(note.id)}
+                        className="p-2 text-zinc-400 hover:text-red-600 bg-red-50 rounded-full transition-all"
+                        aria-label="Delete note"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))
           )}
