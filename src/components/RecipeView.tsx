@@ -65,7 +65,8 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
 
   const handlePrintPdf = () => window.print();
 
-  const handleShareAsHtml = async () => {
+  // כפתור ה-EXPORT החדש שמוריד קובץ HTML מלא
+  const handleExportHtml = () => {
     const htmlContent = `
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -74,39 +75,36 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
   <title>${recipe.name}</title>
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #18181b; max-width: 800px; margin: 0 auto; padding: 2rem; background: #fafafa; }
-    .container { background: white; padding: 2.5rem; border-radius: 1.5rem; border: 1px solid #e4e4e7; shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    .container { background: white; padding: 2.5rem; border-radius: 1.5rem; border: 1px solid #e4e4e7; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
     h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; border-bottom: 2px solid #f4f4f5; padding-bottom: 10px; }
     .info-box { background: #fef2f2; border: 1px solid #fecaca; padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; }
+    .blue-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; }
     h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; }
     li { margin-bottom: 0.75rem; }
+    .notes { font-style: italic; color: #71717a; margin-top: 2rem; border-top: 1px solid #e4e4e7; padding-top: 1rem; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>${recipe.name}</h1>
-    ${recipe.prep_info ? `<div class="info-box"><h3>Prep Info</h3><p>${recipe.prep_info}</p></div>` : ''}
+    ${recipe.prep_info ? `<div class="info-box"><strong>Crucial Prep:</strong> ${recipe.prep_info}</div>` : ''}
+    ${recipe.storage_info ? `<div class="blue-box"><strong>Storage:</strong> ${recipe.storage_info}</div>` : ''}
     <h2>Ingredients</h2>
     <ul>${scaledIngredients.map(i => `<li><strong>${i.amount.toFixed(2)} ${i.unit}</strong> ${i.item}</li>`).join('')}</ul>
     <h2>Instructions</h2>
     <ol>${recipe.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+    ${recipe.culinary_notes ? `<div class="notes"><h3>Culinary Notes</h3><p>${recipe.culinary_notes}</p></div>` : ''}
   </div>
 </body>
 </html>`;
 
     const blob = new Blob([htmlContent], { type: 'text/html' });
-    const file = new File([blob], `${recipe.name.replace(/\s+/g, '_')}.html`, { type: 'text/html' });
-
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: recipe.name });
-      } catch (err) { console.error('Share failed', err); }
-    } else {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${recipe.name}.html`;
-      a.click();
-    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${recipe.name.replace(/\s+/g, '_')}_Export.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (isCookingMode) return <CookingMode recipe={{ ...recipe, ingredients: scaledIngredients }} onExit={() => setIsCookingMode(false)} />;
@@ -131,8 +129,10 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
       <div className="flex items-center justify-between mb-8 print:hidden">
         <button onClick={onBack} className="p-3 -ml-3 rounded-full hover:bg-zinc-100 transition-colors"><ArrowLeft className="w-7 h-7 text-zinc-900" /></button>
         <div className="flex gap-2">
+          {/* כפתור ה-EXPORT החדש */}
+          <button onClick={handleExportHtml} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100" title="Export as HTML File"><Download className="w-6 h-6" /></button>
+          
           <button onClick={handlePrintPdf} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100" title="PDF / Print"><FileText className="w-6 h-6" /></button>
-          <button onClick={handleShareAsHtml} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100" title="Share HTML File"><Share className="w-6 h-6" /></button>
           <button onClick={() => setIsCookingMode(true)} className="flex items-center gap-2 bg-zinc-900 text-white px-5 py-3 rounded-full hover:bg-zinc-800 transition-colors font-medium text-base shadow-sm active:scale-[0.98]"><ChefHat className="w-5 h-5" /> Cook Mode</button>
           <button onClick={onEdit} className="p-3 rounded-full text-zinc-600 hover:bg-zinc-100 transition-colors"><Edit3 className="w-6 h-6" /></button>
           <button onClick={() => setShowDeleteConfirm(true)} className="p-3 rounded-full text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-6 h-6" /></button>
@@ -156,7 +156,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       </div>
 
-      {/* Crucial Info Sections - PRESERVED */}
+      {/* Crucial Info Sections */}
       {recipe.prep_info && (
         <div className="mb-10 bg-red-50 border-2 border-red-200 rounded-3xl p-6 shadow-sm">
           <h2 className="text-xl font-bold text-red-800 mb-3 flex items-center gap-2"><AlertTriangle className="w-6 h-6" /> Crucial Prep Info</h2>
@@ -212,7 +212,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       </div>
 
-      {/* Process Images - PRESERVED */}
+      {/* Process Images */}
       {recipe.process_images && recipe.process_images.length > 0 && (
         <div className="mb-12 bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm">
           <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-6">Process Images</h2>
@@ -227,7 +227,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {/* References - FIXED FOR IOS & SHORTS */}
+      {/* References */}
       {recipe.reference_videos && recipe.reference_videos.length > 0 && (
         <div className="border-t border-zinc-200 pt-10 mb-10 space-y-6 print:hidden">
           <h2 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><Video className="w-6 h-6" /> References</h2>
@@ -248,7 +248,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {/* Notes - EDITABLE & MOBILE FRIENDLY */}
+      {/* Notes */}
       <div className="border-t border-zinc-200 pt-10 print:hidden">
         <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-6">Notes</h2>
         <div className="flex flex-col sm:flex-row gap-3 mb-8">
