@@ -26,15 +26,15 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
   const allSources = useMemo(() => {
     const sources: AggregatedSource[] = [];
 
-    // איסוף מקורות ממתכונים - כולל שמות ערוצים ידניים
+    // איסוף מקורות ממתכונים - שואב את ה-channelName שהזנת ידנית
     recipes.forEach(recipe => {
       if (recipe.reference_videos) {
         recipe.reference_videos.forEach((ref, index) => {
           sources.push({
             id: `recipe-${recipe.id}-${index}`,
-            url: ref.url,
-            note: ref.note,
-            channelName: ref.channelName, // לקיחת השם שהוזן ידנית בעורך
+            url: ref.url || '',
+            note: ref.note || '',
+            channelName: ref.channelName, // המידע שהזנת ידנית בעורך
             sourceType: 'recipe',
             sourceId: recipe.id,
             sourceName: recipe.name
@@ -49,8 +49,8 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
         technique.reference_videos.forEach((ref, index) => {
           sources.push({
             id: `technique-${technique.id}-${index}`,
-            url: ref.url,
-            note: ref.note,
+            url: ref.url || '',
+            note: ref.note || '',
             channelName: ref.channelName,
             sourceType: 'technique',
             sourceId: technique.id,
@@ -66,24 +66,30 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
   const filteredSources = useMemo(() => {
     if (!searchQuery) return allSources;
     const lowerQuery = searchQuery.toLowerCase();
-    return allSources.filter(s => 
-      (s.channelName && s.channelName.toLowerCase().includes(lowerQuery)) ||
-      (s.note && s.note.toLowerCase().includes(lowerQuery)) ||
-      (s.sourceName && s.sourceName.toLowerCase().includes(lowerQuery)) ||
-      (s.url && s.url.toLowerCase().includes(lowerQuery))
-    );
+    
+    return allSources.filter(s => {
+      // חיפוש בטוח שאינו קורס אם אחד השדות חסר
+      const channelMatch = s.channelName?.toLowerCase().includes(lowerQuery);
+      const noteMatch = s.note?.toLowerCase().includes(lowerQuery);
+      const sourceNameMatch = s.sourceName?.toLowerCase().includes(lowerQuery);
+      const urlMatch = s.url?.toLowerCase().includes(lowerQuery);
+      
+      return channelMatch || noteMatch || sourceNameMatch || urlMatch;
+    });
   }, [allSources, searchQuery]);
 
   const isYoutube = (url: string) => {
     return url.includes('youtube.com') || url.includes('youtu.be');
   };
 
-  // פונקציית עזר לחילוץ שם הדומיין במידה ושם הערוץ חסר
+  // פונקציה לחילוץ שם האתר בצורה בטוחה (למקרה שאין שם ערוץ ידני)
   const getDisplaySource = (url: string) => {
+    if (!url) return 'Link';
     try {
-      return new URL(url).hostname.replace('www.', '');
+      const hostname = new URL(url).hostname;
+      return hostname.replace('www.', '');
     } catch {
-      return url;
+      return 'External Link';
     }
   };
 
@@ -131,6 +137,7 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
                   ) : (
                     <LinkIcon className="w-4 h-4 text-blue-500" />
                   )}
+                  {/* מציג את השם הידני שהזנת, או את שם האתר כגיבוי */}
                   <span className="truncate max-w-[150px]" title={source.channelName || getDisplaySource(source.url)}>
                     {source.channelName || getDisplaySource(source.url)}
                   </span>
