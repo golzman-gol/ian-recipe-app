@@ -72,8 +72,8 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
     ${(technique.sections || []).map(s => `
       <div class="section">
         <h2 class="section-title">${s.title}</h2>
-        <div class="content">${s.content}</div>
         ${s.image_base_64 ? `<img src="${s.image_base_64}">` : ''}
+        <div class="content">${s.content}</div>
         ${s.reference ? `<p><small>Reference: <a href="${s.reference.url}">${s.reference.channelName || 'Source'}</a></small></p>` : ''}
       </div>
     `).join('')}
@@ -91,12 +91,13 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-32">
+      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl">
             <h3 className="text-xl font-bold mb-6">Delete Technique?</h3>
             <div className="flex gap-3">
-              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 px-4 py-3 rounded-xl bg-zinc-100 text-zinc-700 font-medium">Cancel</button>
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 px-4 py-3 rounded-xl bg-zinc-100 text-zinc-700 font-medium hover:bg-zinc-200 transition-colors">Cancel</button>
               <button onClick={() => onDelete(technique.id)} className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-medium">Delete</button>
             </div>
           </div>
@@ -134,7 +135,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
         )}
       </div>
 
-      {/* Modular Sections (The Chunks) */}
+      {/* Modular Sections */}
       <div className="space-y-6 mb-12">
         {(technique.sections || []).map((section, idx) => (
           <div key={section.id} className={`bg-white border rounded-3xl transition-all duration-300 overflow-hidden ${expandedSections[section.id] ? 'border-zinc-900 ring-1 ring-zinc-900 shadow-md' : 'border-zinc-200 hover:border-zinc-400'}`}>
@@ -151,17 +152,20 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
 
             {expandedSections[section.id] && (
               <div className="p-6 pt-0 border-t border-zinc-50 space-y-6 animate-in fade-in slide-in-from-top-2">
-                {/* כאן התיקון הקריטי: whitespace-pre-wrap ו-break-words */}
-                <div className="prose prose-zinc max-w-none text-zinc-800 leading-relaxed whitespace-pre-wrap break-words">
-                  <ReactMarkdown>{section.content}</ReactMarkdown>
-                </div>
                 
+                {/* 1. התמונה כעת מעל המלל */}
                 {section.image_base_64 && (
-                  <div className="rounded-2xl overflow-hidden border border-zinc-200 aspect-video">
+                  <div className="rounded-2xl overflow-hidden border border-zinc-200 aspect-video mb-6">
                     <img src={section.image_base_64} className="w-full h-full object-cover" />
                   </div>
                 )}
 
+                {/* 2. המלל מתחת לתמונה */}
+                <div className="prose prose-zinc max-w-none text-zinc-800 leading-relaxed whitespace-pre-wrap break-words">
+                  <ReactMarkdown>{section.content}</ReactMarkdown>
+                </div>
+
+                {/* 3. רפרנס בסוף המקטע */}
                 {section.reference && section.reference.url && (
                   <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
                     <div className="flex items-start justify-between">
