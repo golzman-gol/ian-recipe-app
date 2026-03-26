@@ -200,7 +200,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
   const addReferenceVideo = () => {
     setRecipe({
       ...recipe,
-      reference_videos: [...(recipe.reference_videos || []), { url: '', note: '' }]
+      reference_videos: [...(recipe.reference_videos || []), { url: '', note: '', channelName: '' }]
     });
   };
 
@@ -219,7 +219,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
           updatedVideos[index] = {
             ...updatedVideos[index],
             thumbnailUrl: data.thumbnail_url,
-            channelName: data.author_name,
+            channelName: updatedVideos[index].channelName || data.author_name,
             note: updatedVideos[index].note || data.title || ''
           };
           setRecipe({ ...recipe, reference_videos: updatedVideos });
@@ -697,16 +697,18 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                   </div>
                   <input
                     type="text"
+                    value={video.channelName || ''}
+                    onChange={(e) => updateReferenceVideo(idx, 'channelName', e.target.value)}
+                    className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
+                    placeholder="Channel Name (optional)"
+                  />
+                  <input
+                    type="text"
                     value={video.note}
                     onChange={(e) => updateReferenceVideo(idx, 'note', e.target.value)}
                     className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white"
                     placeholder="Description (e.g., Main Source, Kneading Technique)"
                   />
-                  {video.channelName && (
-                    <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                      Channel: {video.channelName}
-                    </p>
-                  )}
                 </div>
                 <button
                   onClick={() => removeReferenceVideo(idx)}
