@@ -14,7 +14,7 @@ export interface ReferenceLink {
   url: string;
   note: string;
   thumbnailUrl?: string;
-  channelName?: string;
+  channelName?: string; // השדה שמאפשר שמירה וחיפוש של שם הערוץ
 }
 
 export interface Technique {
@@ -23,7 +23,7 @@ export interface Technique {
   overview: string;
   content: string;
   tags: string[];
-  image_base64?: string;
+  image_base_64?: string;
   reference_videos?: ReferenceLink[];
 }
 
@@ -43,7 +43,7 @@ export interface Recipe {
   culinary_notes?: string;
   original_ingredients?: Ingredient[];
   original_steps?: string[];
-  image_base64?: string;
+  image_base_64?: string;
   linkedTechniques?: string[];
   linkedRecipes?: string[];
   prep_info?: string;
