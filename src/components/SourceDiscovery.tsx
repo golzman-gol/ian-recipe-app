@@ -26,6 +26,7 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
   const allSources = useMemo(() => {
     const sources: AggregatedSource[] = [];
 
+    // איסוף מקורות ממתכונים - כולל שמות ערוצים ידניים
     recipes.forEach(recipe => {
       if (recipe.reference_videos) {
         recipe.reference_videos.forEach((ref, index) => {
@@ -33,7 +34,7 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
             id: `recipe-${recipe.id}-${index}`,
             url: ref.url,
             note: ref.note,
-            channelName: ref.channelName,
+            channelName: ref.channelName, // לקיחת השם שהוזן ידנית בעורך
             sourceType: 'recipe',
             sourceId: recipe.id,
             sourceName: recipe.name
@@ -42,6 +43,7 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
       }
     });
 
+    // איסוף מקורות מטכניקות
     techniques.forEach(technique => {
       if (technique.reference_videos) {
         technique.reference_videos.forEach((ref, index) => {
@@ -66,14 +68,23 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
     const lowerQuery = searchQuery.toLowerCase();
     return allSources.filter(s => 
       (s.channelName && s.channelName.toLowerCase().includes(lowerQuery)) ||
-      s.note.toLowerCase().includes(lowerQuery) ||
-      s.sourceName.toLowerCase().includes(lowerQuery) ||
-      s.url.toLowerCase().includes(lowerQuery)
+      (s.note && s.note.toLowerCase().includes(lowerQuery)) ||
+      (s.sourceName && s.sourceName.toLowerCase().includes(lowerQuery)) ||
+      (s.url && s.url.toLowerCase().includes(lowerQuery))
     );
   }, [allSources, searchQuery]);
 
   const isYoutube = (url: string) => {
     return url.includes('youtube.com') || url.includes('youtu.be');
+  };
+
+  // פונקציית עזר לחילוץ שם הדומיין במידה ושם הערוץ חסר
+  const getDisplaySource = (url: string) => {
+    try {
+      return new URL(url).hostname.replace('www.', '');
+    } catch {
+      return url;
+    }
   };
 
   return (
@@ -120,8 +131,8 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
                   ) : (
                     <LinkIcon className="w-4 h-4 text-blue-500" />
                   )}
-                  <span className="truncate max-w-[150px]" title={source.channelName || new URL(source.url).hostname}>
-                    {source.channelName || new URL(source.url).hostname}
+                  <span className="truncate max-w-[150px]" title={source.channelName || getDisplaySource(source.url)}>
+                    {source.channelName || getDisplaySource(source.url)}
                   </span>
                 </div>
                 <a 
