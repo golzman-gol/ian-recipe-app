@@ -77,24 +77,49 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
     body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #18181b; max-width: 800px; margin: 0 auto; padding: 2rem; background: #fafafa; text-align: left; }
     .container { background: white; padding: 2.5rem; border-radius: 1.5rem; border: 1px solid #e4e4e7; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
     h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; border-bottom: 2px solid #f4f4f5; padding-bottom: 10px; text-align: left; }
-    .info-box { background: #fef2f2; border: 1px solid #fecaca; padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; text-align: left; }
-    .blue-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; text-align: left; }
+    .info-box { background: #fef2f2; border: 1px solid #fecaca; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; text-align: left; }
+    .blue-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; text-align: left; }
     .amber-box { background: #fffbeb; border: 1px solid #fef3c7; padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; text-align: left; }
-    h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; text-align: left; }
+    h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; text-align: left; border-bottom: 1px solid #f4f4f5; padding-bottom: 8px; }
     ul, ol { padding-left: 1.5rem; text-align: left; }
     li { margin-bottom: 0.75rem; }
+    .note-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 0.75rem; margin-bottom: 1rem; }
+    .process-img { width: 100%; border-radius: 1rem; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>${recipe.name}</h1>
+    
     ${recipe.prep_info ? `<div class="info-box"><h3>Crucial Prep Info</h3><p>${recipe.prep_info}</p></div>` : ''}
     ${recipe.storage_info ? `<div class="blue-box"><h3>Storage & Expiry</h3><p>${recipe.storage_info}</p></div>` : ''}
+    ${recipe.culinary_notes ? `<div class="amber-box"><h3>Culinary Notes</h3><p>${recipe.culinary_notes}</p></div>` : ''}
+
     <h2>Ingredients</h2>
     <ul>${scaledIngredients.map(i => `<li><strong>${i.amount.toFixed(2)} ${i.unit}</strong> ${i.item}</li>`).join('')}</ul>
+    
     <h2>Instructions</h2>
     <ol>${recipe.steps.map(s => `<li>${s}</li>`).join('')}</ol>
-    ${recipe.culinary_notes ? `<div class="amber-box"><h3>Culinary Notes</h3><p>${recipe.culinary_notes}</p></div>` : ''}
+
+    ${recipe.process_images && recipe.process_images.length > 0 ? `
+      <h2>Process Images</h2>
+      ${recipe.process_images.map(img => `
+        <div style="margin-bottom: 20px;">
+          <img src="${typeof img === 'string' ? img : img.url}" class="process-img">
+          ${typeof img !== 'string' && img.caption ? `<p><em>${img.caption}</em></p>` : ''}
+        </div>
+      `).join('')}
+    ` : ''}
+
+    ${recipe.notes && recipe.notes.length > 0 ? `
+      <h2>Lab Notes</h2>
+      ${recipe.notes.map(n => `
+        <div class="note-item">
+          <small>${new Date(n.timestamp).toLocaleDateString()}</small>
+          <p>${n.text}</p>
+        </div>
+      `).join('')}
+    ` : ''}
   </div>
 </body>
 </html>`;
@@ -170,22 +195,22 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
 
       {/* Prep & Storage Info - PRESERVED */}
       {recipe.prep_info && (
-        <div className="mb-10 bg-red-50 border-2 border-red-200 rounded-3xl p-6 shadow-sm">
+        <div className="mb-10 bg-red-50 border-2 border-red-200 rounded-3xl p-6 shadow-sm section-to-print">
           <h2 className="text-xl font-bold text-red-800 mb-3 flex items-center gap-2"><AlertTriangle className="w-6 h-6" /> Crucial Prep Info</h2>
           <p className="text-red-900 text-lg leading-relaxed whitespace-pre-wrap font-medium">{recipe.prep_info}</p>
         </div>
       )}
 
       {recipe.storage_info && (
-        <div className="mb-10 bg-blue-50 border border-blue-200 rounded-3xl p-6 shadow-sm">
+        <div className="mb-10 bg-blue-50 border border-blue-200 rounded-3xl p-6 shadow-sm section-to-print">
           <h2 className="text-xl font-bold text-blue-800 mb-3 flex items-center gap-2"><ThermometerSnowflake className="w-6 h-6" /> Storage & Expiry</h2>
           <p className="text-blue-900 text-lg leading-relaxed whitespace-pre-wrap font-medium">{recipe.storage_info}</p>
         </div>
       )}
 
-      {/* Culinary Notes - PRESERVED & Corrected Alignment */}
+      {/* Culinary Notes - MOVED BEFORE INGREDIENTS TO MATCH EXPORT/UI */}
       {recipe.culinary_notes && (
-        <div className="mb-10 bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-sm">
+        <div className="mb-10 bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-sm section-to-print">
           <h2 className="text-xl font-semibold text-amber-900 mb-3">Culinary Notes</h2>
           <p className="text-amber-800 leading-relaxed whitespace-pre-wrap text-lg">{recipe.culinary_notes}</p>
         </div>
@@ -198,12 +223,13 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1 bg-zinc-100 rounded-full p-1 border">
               {multipliers.map((m) => (
-                <button key={m} onClick={() => { setMultiplier(m); setCustomMultiplier(''); }} className={`px-4 py-2 rounded-full text-base font-medium ${activeMultiplier === m && !customMultiplier ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-600'}`}>{m}x</button>
+                <button key={m} onClick={() => { setMultiplier(m); setCustomMultiplier(''); }} className={`px-4 py-2 rounded-full text-sm font-bold ${activeMultiplier === m && !customMultiplier ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-600'}`}>{m}x</button>
               ))}
             </div>
             <input type="number" step="0.1" placeholder="Custom x" value={customMultiplier} onChange={(e) => setCustomMultiplier(e.target.value)} className="w-28 px-4 py-2 rounded-full border border-zinc-200 bg-zinc-50 text-base font-medium focus:ring-2 focus:ring-zinc-900 outline-none" />
           </div>
         </div>
+        <h2 className="hidden print:block text-2xl font-bold text-zinc-900 mb-4">Ingredients</h2>
         <p className="text-base text-zinc-500 mb-6 font-medium">Makes {recipe.servings_base * activeMultiplier} servings</p>
         <ul className="space-y-4">
           {scaledIngredients.map((ing, idx) => (
@@ -217,7 +243,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
       </div>
 
       {/* Instructions - NUMBERS ON LEFT */}
-      <div className="mb-12 bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm">
+      <div className="mb-12 bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm break-inside-avoid">
         <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-8">Instructions</h2>
         <div className="space-y-8">
           {recipe.steps.map((step, idx) => (
@@ -225,7 +251,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-100 text-zinc-900 flex items-center justify-center font-bold text-lg border">
                 {idx + 1}
               </div>
-              <p className="text-zinc-800 leading-relaxed pt-1 text-lg flex-1">{step}</p>
+              <p className="text-zinc-800 leading-relaxed pt-1 text-lg flex-1 text-left">{step}</p>
             </div>
           ))}
         </div>
@@ -236,18 +262,12 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         <div className="mb-12 bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm">
           <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-6">Process Images</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {recipe.process_images.map((img, idx) => {
-              const url = typeof img === 'string' ? img : img.url;
-              const caption = typeof img === 'string' ? '' : img.caption || '';
-              return (
-                <div key={idx} className="flex flex-col gap-3">
-                  <div className="relative aspect-video rounded-2xl overflow-hidden border">
-                    <img src={url} alt={`Process step ${idx + 1}`} className="w-full h-full object-cover" />
-                  </div>
-                  {caption && <p className="text-zinc-600 font-medium text-sm px-1">{caption}</p>}
-                </div>
-              );
-            })}
+            {recipe.process_images.map((img, idx) => (
+              <div key={idx} className="flex flex-col gap-3">
+                <div className="aspect-video rounded-2xl overflow-hidden border border-zinc-200"><img src={typeof img === 'string' ? img : img.url} className="w-full h-full object-cover" /></div>
+                {typeof img !== 'string' && img.caption && <p className="text-zinc-600 font-medium text-sm px-1">{img.caption}</p>}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -273,29 +293,31 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {/* Notes - EDITABLE & NO OPACITY */}
-      <div className="border-t border-zinc-200 pt-10 print:hidden">
+      {/* Lab Notes - EDITABLE & NO OPACITY */}
+      <div className="border-t border-zinc-200 pt-10 print:block">
         <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-6">Notes</h2>
-        <div className="flex flex-col sm:flex-row gap-3 mb-8">
+        <div className="flex flex-col sm:flex-row gap-3 mb-8 print:hidden">
           <input type="text" value={newNote} onChange={(e) => setNewNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddNote()} placeholder="Add a new observation..." className="flex-1 border border-zinc-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-zinc-900 bg-zinc-50 text-lg outline-none" />
-          <button onClick={handleAddNote} disabled={!newNote.trim()} className="bg-zinc-900 text-white px-8 py-4 rounded-2xl font-medium disabled:opacity-50">Add Note</button>
+          <button onClick={handleAddNote} disabled={!newNote.trim()} className="bg-zinc-900 text-white px-8 py-4 rounded-2xl font-medium shadow-sm disabled:opacity-50">Add Note</button>
         </div>
+
         <div className="space-y-4">
           {recipe.notes.map((note) => (
             <div key={note.id} className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm relative group">
               <div className="flex items-center gap-2 text-sm text-zinc-500 mb-3 font-bold uppercase tracking-wider"><Clock className="w-4 h-4" /> {new Date(note.timestamp).toLocaleDateString()}</div>
+              
               {editingNoteId === note.id ? (
                 <div className="space-y-3">
                   <textarea value={editingNoteText} onChange={(e) => setEditingNoteText(e.target.value)} className="w-full border border-zinc-200 rounded-xl p-3 bg-zinc-50 focus:ring-2 focus:ring-zinc-900 outline-none text-lg" rows={3} />
                   <div className="flex gap-2">
                     <button onClick={handleSaveEditedNote} className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1 font-bold"><Check className="w-4 h-4" /> Save</button>
-                    <button onClick={() => setEditingNoteId(null)} className="bg-zinc-100 px-4 py-2 rounded-lg text-sm font-medium">Cancel</button>
+                    <button onClick={() => setEditingNoteId(null)} className="bg-zinc-100 text-zinc-600 px-4 py-2 rounded-lg text-sm font-medium">Cancel</button>
                   </div>
                 </div>
               ) : (
                 <>
-                  <p className="text-zinc-800 leading-relaxed text-lg pr-20">{note.text}</p>
-                  <div className="absolute top-5 right-5 flex gap-1">
+                  <p className="text-zinc-800 leading-relaxed text-lg pr-20 text-left">{note.text}</p>
+                  <div className="absolute top-5 right-5 flex gap-1 print:hidden">
                     <button onClick={() => { setEditingNoteId(note.id); setEditingNoteText(note.text); }} className="p-2.5 text-zinc-400 hover:text-zinc-900 bg-zinc-50 rounded-full transition-all"><Edit3 className="w-5 h-5" /></button>
                     <button onClick={() => onUpdateRecipe({ ...recipe, notes: recipe.notes.filter(n => n.id !== note.id) })} className="p-2.5 text-zinc-400 hover:text-red-600 bg-red-50 rounded-full transition-all"><Trash2 className="w-5 h-5" /></button>
                   </div>
@@ -306,12 +328,17 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       </div>
 
+      {/* Printing Styles */}
       <style>{`
         @media print {
           .print\\:hidden, button, input { display: none !important; }
-          body { padding: 0; background: white; }
+          body { padding: 0; background: white; font-size: 11pt; -webkit-print-color-adjust: exact; }
           .container { border: none !important; padding: 0 !important; }
           .max-w-3xl { max-width: 100% !important; }
+          .rounded-3xl { border-radius: 12px !important; }
+          .shadow-sm { box-shadow: none !important; border: 1px solid #eee !important; }
+          .section-to-print { border-width: 1px !important; padding: 15px !important; break-inside: avoid; }
+          h1 { margin-top: 0; }
         }
       `}</style>
     </div>
