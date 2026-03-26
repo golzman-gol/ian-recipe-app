@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Recipe, Technique, ReferenceLink } from '../types';
-import { ArrowLeft, Search, ExternalLink, Youtube, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Search, ExternalLink, Youtube, Link as LinkIcon, User } from 'lucide-react';
 
 interface SourceDiscoveryProps {
   recipes: Recipe[];
@@ -26,7 +26,7 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
   const allSources = useMemo(() => {
     const sources: AggregatedSource[] = [];
 
-    // איסוף מקורות ממתכונים - שואב את ה-channelName שהזנת ידנית
+    // איסוף מקורות ממתכונים - שואב את ה-channelName שהזנת ידנית בעורך
     recipes.forEach(recipe => {
       if (recipe.reference_videos) {
         recipe.reference_videos.forEach((ref, index) => {
@@ -34,7 +34,7 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
             id: `recipe-${recipe.id}-${index}`,
             url: ref.url || '',
             note: ref.note || '',
-            channelName: ref.channelName, // המידע שהזנת ידנית בעורך
+            channelName: ref.channelName, // המידע הקריטי מהעורך
             sourceType: 'recipe',
             sourceId: recipe.id,
             sourceName: recipe.name
@@ -64,11 +64,11 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
   }, [recipes, techniques]);
 
   const filteredSources = useMemo(() => {
-    if (!searchQuery) return allSources;
-    const lowerQuery = searchQuery.toLowerCase();
+    const lowerQuery = searchQuery.toLowerCase().trim();
+    if (!lowerQuery) return allSources;
     
     return allSources.filter(s => {
-      // חיפוש בטוח שאינו קורס אם אחד השדות חסר
+      // חיפוש משופר הכולל את שם הערוץ הידני
       const channelMatch = s.channelName?.toLowerCase().includes(lowerQuery);
       const noteMatch = s.note?.toLowerCase().includes(lowerQuery);
       const sourceNameMatch = s.sourceName?.toLowerCase().includes(lowerQuery);
@@ -79,10 +79,9 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
   }, [allSources, searchQuery]);
 
   const isYoutube = (url: string) => {
-    return url.includes('youtube.com') || url.includes('youtu.be');
+    return url.includes('youtube.com') || url.includes('youtu.be') || url.includes('shorts/');
   };
 
-  // פונקציה לחילוץ שם האתר בצורה בטוחה (למקרה שאין שם ערוץ ידני)
   const getDisplaySource = (url: string) => {
     if (!url) return 'Link';
     try {
@@ -137,7 +136,6 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
                   ) : (
                     <LinkIcon className="w-4 h-4 text-blue-500" />
                   )}
-                  {/* מציג את השם הידני שהזנת, או את שם האתר כגיבוי */}
                   <span className="truncate max-w-[150px]" title={source.channelName || getDisplaySource(source.url)}>
                     {source.channelName || getDisplaySource(source.url)}
                   </span>
@@ -152,6 +150,14 @@ export function SourceDiscovery({ recipes, techniques, onBack, onSelectRecipe, o
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
+
+              {/* הצגת שם הערוץ באופן ברור במידה וקיים (פותר את הקישוריות) */}
+              {source.channelName && (
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                  <User className="w-3 h-3" />
+                  <span>Channel: {source.channelName}</span>
+                </div>
+              )}
               
               <p className="text-zinc-700 text-sm mb-4 flex-1 line-clamp-3" title={source.note}>
                 {source.note || "No description provided."}
