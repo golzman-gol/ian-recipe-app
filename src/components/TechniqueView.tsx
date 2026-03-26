@@ -15,9 +15,7 @@ interface TechniqueViewProps {
 
 export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, onSelectRecipe, onTagClick }: TechniqueViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  // ניהול מצב פתיחה/סגירה של מקטעים
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
-    // כברירת מחדל, המקטע הראשון פתוח והשאר סגורים
     const initial: Record<string, boolean> = {};
     if (technique.sections && technique.sections.length > 0) {
       initial[technique.sections[0].id] = true;
@@ -63,17 +61,18 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
     h1 { font-size: 2.5rem; font-weight: 800; border-bottom: 2px solid #f4f4f5; padding-bottom: 1rem; }
     .section { border: 1px solid #e4e4e7; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem; }
     .section-title { font-size: 1.25rem; font-weight: 700; margin-top: 0; }
+    .content { white-space: pre-wrap; word-wrap: break-word; }
     img { max-width: 100%; border-radius: 0.75rem; margin: 1rem 0; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>${technique.title}</h1>
-    <p>${technique.overview || ''}</p>
+    <p class="content">${technique.overview || ''}</p>
     ${(technique.sections || []).map(s => `
       <div class="section">
         <h2 class="section-title">${s.title}</h2>
-        <div>${s.content}</div>
+        <div class="content">${s.content}</div>
         ${s.image_base_64 ? `<img src="${s.image_base_64}">` : ''}
         ${s.reference ? `<p><small>Reference: <a href="${s.reference.url}">${s.reference.channelName || 'Source'}</a></small></p>` : ''}
       </div>
@@ -92,7 +91,6 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-32">
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-xl">
@@ -129,14 +127,17 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           <span className="text-xs font-bold uppercase tracking-widest">Mastering Technique</span>
         </div>
         <h1 className="text-4xl font-black tracking-tight text-zinc-900 mb-4">{technique.title}</h1>
-        {technique.overview && <p className="text-xl text-zinc-500 leading-relaxed italic">{technique.overview}</p>}
+        {technique.overview && (
+          <div className="whitespace-pre-wrap break-words text-xl text-zinc-500 leading-relaxed italic">
+            {technique.overview}
+          </div>
+        )}
       </div>
 
-      {/* New Modular Sections (The Chunks) */}
+      {/* Modular Sections (The Chunks) */}
       <div className="space-y-6 mb-12">
         {(technique.sections || []).map((section, idx) => (
           <div key={section.id} className={`bg-white border rounded-3xl transition-all duration-300 overflow-hidden ${expandedSections[section.id] ? 'border-zinc-900 ring-1 ring-zinc-900 shadow-md' : 'border-zinc-200 hover:border-zinc-400'}`}>
-            {/* Section Header */}
             <button 
               onClick={() => toggleSection(section.id)}
               className="w-full flex items-center justify-between p-6 text-left"
@@ -148,10 +149,10 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
               {expandedSections[section.id] ? <ChevronUp className="w-5 h-5 text-zinc-400" /> : <ChevronDown className="w-5 h-5 text-zinc-400" />}
             </button>
 
-            {/* Section Body */}
             {expandedSections[section.id] && (
               <div className="p-6 pt-0 border-t border-zinc-50 space-y-6 animate-in fade-in slide-in-from-top-2">
-                <div className="prose prose-zinc max-w-none text-zinc-800 leading-relaxed">
+                {/* כאן התיקון הקריטי: whitespace-pre-wrap ו-break-words */}
+                <div className="prose prose-zinc max-w-none text-zinc-800 leading-relaxed whitespace-pre-wrap break-words">
                   <ReactMarkdown>{section.content}</ReactMarkdown>
                 </div>
                 
@@ -161,7 +162,6 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
                   </div>
                 )}
 
-                {/* Section Specific Reference */}
                 {section.reference && section.reference.url && (
                   <div className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100">
                     <div className="flex items-start justify-between">
