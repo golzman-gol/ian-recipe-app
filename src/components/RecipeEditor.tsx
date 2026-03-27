@@ -144,6 +144,25 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
     setRecipe({ ...recipe, ingredients: newIngredients });
   };
 
+  // לוגיקה להזזת מצרכים (חדש!)
+  const moveIngredientUp = (index: number) => {
+    if (index === 0) return;
+    const newIngredients = [...recipe.ingredients];
+    const temp = newIngredients[index - 1];
+    newIngredients[index - 1] = newIngredients[index];
+    newIngredients[index] = temp;
+    setRecipe({ ...recipe, ingredients: newIngredients });
+  };
+
+  const moveIngredientDown = (index: number) => {
+    if (index === recipe.ingredients.length - 1) return;
+    const newIngredients = [...recipe.ingredients];
+    const temp = newIngredients[index + 1];
+    newIngredients[index + 1] = newIngredients[index];
+    newIngredients[index] = temp;
+    setRecipe({ ...recipe, ingredients: newIngredients });
+  };
+
   const addIngredient = () => {
     setRecipe({
       ...recipe,
@@ -510,26 +529,45 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
           </div>
           <div className="space-y-3">
             {recipe.ingredients.map((ing, idx) => (
-              <div key={idx} className="flex gap-2 items-start">
+              <div key={idx} className="flex gap-2 items-center bg-zinc-50/50 p-2 rounded-2xl border border-zinc-100 group">
+                {/* כפתורי הזזה למצרכים (חדש!) */}
+                <div className="flex flex-col gap-1 px-1">
+                  <button 
+                    onClick={() => moveIngredientUp(idx)} 
+                    disabled={idx === 0} 
+                    className="p-1 text-zinc-400 hover:text-zinc-900 disabled:opacity-20 transition-colors"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => moveIngredientDown(idx)} 
+                    disabled={idx === recipe.ingredients.length - 1} 
+                    className="p-1 text-zinc-400 hover:text-zinc-900 disabled:opacity-20 transition-colors"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                </div>
+                
                 <input
                   type="number"
+                  step="0.1"
                   value={ing.amount}
                   onChange={(e) => updateIngredient(idx, 'amount', parseFloat(e.target.value) || 0)}
-                  className="w-20 border border-zinc-200 rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-zinc-50 font-mono"
+                  className="w-20 border border-zinc-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-zinc-900 outline-none bg-white font-mono text-center"
                   placeholder="Amt"
                 />
                 <input
                   type="text"
                   value={ing.unit}
                   onChange={(e) => updateIngredient(idx, 'unit', e.target.value)}
-                  className="w-24 border border-zinc-200 rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-zinc-50"
+                  className="w-24 border border-zinc-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-zinc-900 outline-none bg-white"
                   placeholder="Unit"
                 />
                 <input
                   type="text"
                   value={ing.item}
                   onChange={(e) => updateIngredient(idx, 'item', e.target.value)}
-                  className="flex-1 border border-zinc-200 rounded-xl px-3 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-zinc-50 font-medium"
+                  className="flex-1 border border-zinc-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-zinc-900 outline-none bg-white font-medium"
                   placeholder="Ingredient name"
                 />
                 <button
@@ -570,7 +608,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                 )}
                 <div className="flex gap-3 items-start">
                   <div className="flex flex-col items-center gap-1 mt-1">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-100 text-zinc-900 flex items-center justify-center font-bold text-sm">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-bold text-sm">
                       {idx + 1}
                     </div>
                     <div className="flex flex-col gap-1 mt-1">
