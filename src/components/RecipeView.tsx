@@ -232,8 +232,9 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         <h2 className="hidden print:block text-2xl font-bold text-zinc-900 mb-4">Ingredients</h2>
         
         {/* השינוי כאן: הצגת כמות המנות ביחס לבסיס */}
-        <p className="text-base text-zinc-500 mb-6 font-medium">Makes {recipe.servings_base * activeMultiplier} servings (Base: {recipe.servings_base})</p>
-        
+<p className="text-base text-zinc-500 mb-6 font-medium text-left">
+  Makes {recipe.servings_base * activeMultiplier} servings
+</p>        
         <ul className="space-y-4">
           {scaledIngredients.map((ing, idx) => (
             <li key={idx} className="flex items-baseline gap-4 py-3 border-b border-zinc-100 last:border-0">
