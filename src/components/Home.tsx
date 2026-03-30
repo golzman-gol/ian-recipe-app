@@ -53,12 +53,12 @@ export function Home({
         const data = JSON.parse(event.target?.result as string);
         if (data.recipes && data.techniques) {
           onImportData(data.recipes, data.techniques);
-          alert('Data imported successfully!');
+          alert('הנתונים יובאו בהצלחה!');
         } else {
-          alert('Invalid backup file format. Expected recipes and techniques.');
+          alert('פורמט קובץ לא תקין. צפויים מתכונים וטכניקות.');
         }
       } catch (err) {
-        alert('Invalid backup file');
+        alert('קובץ גיבוי לא תקין');
       }
     };
     reader.readAsText(file);
@@ -115,28 +115,28 @@ export function Home({
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 pb-24">
+    <div className="max-w-3xl mx-auto px-4 py-8 pb-24 rtl text-right" dir="rtl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3 text-zinc-900">
           <ChefHat className="w-8 h-8" />
-          <h1 className="text-3xl font-bold tracking-tight">Ian's Kitchen</h1>
+          <h1 className="text-3xl font-bold tracking-tight">המטבח של איאן</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={handleExportData}
             className="bg-zinc-100 text-zinc-900 px-3 py-2 rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2 font-medium text-sm"
-            title="Export All Data"
+            title="ייצוא כל הנתונים"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden sm:inline">ייצוא</span>
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="bg-zinc-100 text-zinc-900 px-3 py-2 rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2 font-medium text-sm"
-            title="Import Data"
+            title="ייבוא נתונים"
           >
             <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Import</span>
+            <span className="hidden sm:inline">ייבוא</span>
           </button>
           <input
             type="file"
@@ -148,38 +148,38 @@ export function Home({
           <button
             onClick={onGoToSourceDiscovery}
             className="bg-zinc-100 text-zinc-900 px-3 py-2 rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2 font-medium text-sm"
-            title="Source Discovery"
+            title="גילוי מקורות"
           >
             <Globe className="w-4 h-4" />
-            <span className="hidden sm:inline">Sources</span>
+            <span className="hidden sm:inline">מקורות</span>
           </button>
           <button
             onClick={onAddTechnique}
             className="bg-zinc-100 text-zinc-900 px-3 py-2 rounded-full hover:bg-zinc-200 transition-colors flex items-center gap-2 font-medium text-sm"
-            aria-label="Add Technique"
+            aria-label="הוסף טכניקה"
           >
             <BookOpen className="w-4 h-4" />
-            <span className="hidden sm:inline">New Technique</span>
+            <span className="hidden sm:inline">טכניקה חדשה</span>
           </button>
           <button
             onClick={onAddRecipe}
             className="bg-zinc-900 text-white px-3 py-2 rounded-full hover:bg-zinc-800 transition-colors flex items-center gap-2 font-medium text-sm"
-            aria-label="Add Recipe"
+            aria-label="הוסף מתכון"
           >
             <Utensils className="w-4 h-4" />
-            <span className="hidden sm:inline">New Recipe</span>
+            <span className="hidden sm:inline">מתכון חדש</span>
           </button>
         </div>
       </div>
 
       <div className="relative mb-8">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-zinc-400" />
         </div>
         <input
           type="text"
-          className="block w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-2xl leading-5 bg-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 sm:text-sm transition-all shadow-sm"
-          placeholder="Search or filter by tags..."
+          className="block w-full pr-10 pl-3 py-3 border border-zinc-200 rounded-2xl leading-5 bg-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 sm:text-sm transition-all shadow-sm"
+          placeholder="חפש או סנן לפי תגיות..."
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
@@ -195,7 +195,7 @@ export function Home({
               <button
                 key={tag}
                 onClick={() => toggleTag(tag)}
-                className="w-full text-left px-4 py-3 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none first:rounded-t-2xl last:rounded-b-2xl"
+                className="w-full text-right px-4 py-3 hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none first:rounded-t-2xl last:rounded-b-2xl"
               >
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-800">
                   {tag}
@@ -215,7 +215,7 @@ export function Home({
               : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
           }`}
         >
-          All Content
+          הכל
         </button>
         <button
           onClick={() => setContentTypeFilter('recipes')}
@@ -225,7 +225,7 @@ export function Home({
               : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
           }`}
         >
-          Recipes
+          מתכונים
         </button>
         <button
           onClick={() => setContentTypeFilter('techniques')}
@@ -235,7 +235,7 @@ export function Home({
               : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
           }`}
         >
-          Techniques
+          טכניקות
         </button>
       </div>
 
@@ -248,22 +248,22 @@ export function Home({
               className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
             >
               {tag}
-              <span className="text-zinc-400 hover:text-white">&times;</span>
+              <span className="text-zinc-400 hover:text-white mr-1">&times;</span>
             </button>
           ))}
           <button
             onClick={() => onSelectedTagsChange([])}
             className="text-sm text-zinc-500 hover:text-zinc-900 underline underline-offset-2"
           >
-            Clear all
+            נקה הכל
           </button>
         </div>
       )}
 
       {filteredItems.length === 0 ? (
         <div className="text-center py-12 text-zinc-500">
-          <p className="text-lg">No items found.</p>
-          <p className="text-sm mt-2">Try adjusting your search or add a new recipe/technique.</p>
+          <p className="text-lg">לא נמצאו פריטים.</p>
+          <p className="text-sm mt-2">נסה לשנות את החיפוש או להוסיף מתכון/טכניקה חדשה.</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -277,9 +277,9 @@ export function Home({
             >
               <div className="flex items-center gap-2 mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500">
                 {type === 'recipe' ? (
-                  <><Utensils className="w-4 h-4" /> Recipe</>
+                  <><Utensils className="w-4 h-4" /> מתכון</>
                 ) : (
-                  <><BookOpen className="w-4 h-4" /> Technique</>
+                  <><BookOpen className="w-4 h-4" /> טכניקה</>
                 )}
               </div>
               <div className="flex-1">
@@ -304,8 +304,8 @@ export function Home({
               </div>
               {type === 'recipe' && (
                 <div className="text-sm text-zinc-500 flex justify-between items-center mt-4 pt-4 border-t border-zinc-100">
-                  <span>{(item as Recipe).ingredients.length} ingredients</span>
-                  <span>{(item as Recipe).servings_base} servings</span>
+                  <span>{(item as Recipe).ingredients.length} מצרכים</span>
+                  <span>{(item as Recipe).servings_base} מנות</span>
                 </div>
               )}
             </div>
