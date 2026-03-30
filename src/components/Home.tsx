@@ -119,7 +119,7 @@ export function Home({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3 text-zinc-900">
           <ChefHat className="w-8 h-8" />
-          <h1 className="text-3xl font-bold tracking-tight">המטבח של איאן</h1>
+          <h1 className="text-3xl font-bold tracking-tight">המטבח של יאן</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
