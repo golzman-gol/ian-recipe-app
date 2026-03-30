@@ -61,14 +61,14 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-zinc-950 text-white z-50 flex flex-col h-[100dvh]">
+    <div className="fixed inset-0 bg-zinc-950 text-white z-50 flex flex-col h-[100dvh] rtl text-right" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-zinc-800">
-        <h1 className="text-2xl font-bold truncate pr-4">{recipe.name}</h1>
+        <h1 className="text-2xl font-bold truncate pl-4">{recipe.name}</h1>
         <button
           onClick={onExit}
           className="p-3 rounded-full bg-zinc-800 hover:bg-zinc-700 transition-colors"
-          aria-label="Exit Cooking Mode"
+          aria-label="יציאה ממצב בישול"
         >
           <X className="w-8 h-8" />
         </button>
@@ -83,14 +83,14 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
                 <div className="mb-10 bg-red-950/30 border border-red-900/50 rounded-3xl p-6">
                   <h3 className="text-red-400 font-bold uppercase tracking-wider text-sm mb-3 flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5" />
-                    Crucial Prep Info
+                    מידע הכנה קריטי
                   </h3>
                   <p className="text-xl text-red-100 whitespace-pre-wrap leading-relaxed">
                     {recipe.prep_info}
                   </p>
                 </div>
               )}
-              <h2 className="text-4xl font-bold mb-8 text-zinc-400">Ingredients Prep</h2>
+              <h2 className="text-4xl font-bold mb-8 text-zinc-400">הכנת מרכיבים</h2>
               <ul className="space-y-6">
                 {recipe.ingredients.map((ing, idx) => (
                   <li key={idx} className="flex items-baseline gap-6 text-2xl border-b border-zinc-800 pb-4">
@@ -98,13 +98,13 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
                       {Number.isInteger(ing.amount) ? ing.amount : ing.amount.toFixed(2)}
                     </span>
                     <span className="text-zinc-500 w-24">{ing.unit}</span>
-                    <span className="font-medium">{ing.item}</span>
+                    <span className="font-medium flex-1">{ing.item}</span>
                   </li>
                 ))}
               </ul>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto w-full text-center animate-in slide-in-from-right-8 duration-300">
+            <div className="max-w-3xl mx-auto w-full text-center animate-in slide-in-from-left-8 duration-300">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-zinc-800 text-zinc-400 font-bold text-3xl mb-12">
                 {currentStep + 1}
               </div>
@@ -118,15 +118,17 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
 
       {/* Navigation Footer */}
       <div className="p-6 border-t border-zinc-800 grid grid-cols-2 gap-4 pb-safe">
+        {/* בממשק עברי, 'הקודם' נמצא בצד ימין (ראשון ב-DOM) ומצביע ימינה */}
         <button
           onClick={handlePrev}
           disabled={currentStep === -1}
           className="flex items-center justify-center gap-3 py-8 rounded-3xl bg-zinc-900 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-2xl font-medium"
         >
-          <ChevronLeft className="w-10 h-10" />
-          Back
+          <ChevronRight className="w-10 h-10" />
+          הקודם
         </button>
         
+        {/* 'הבא' נמצא בצד שמאל ומצביע שמאלה */}
         <button
           onClick={handleNext}
           disabled={currentStep === totalSteps - 1}
@@ -134,13 +136,13 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
         >
           {currentStep === totalSteps - 1 ? (
             <>
-              Done
+              סיום
               <CheckCircle2 className="w-10 h-10" />
             </>
           ) : (
             <>
-              Next
-              <ChevronRight className="w-10 h-10" />
+              הבא
+              <ChevronLeft className="w-10 h-10" />
             </>
           )}
         </button>
