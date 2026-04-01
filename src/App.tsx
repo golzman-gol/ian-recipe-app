@@ -93,14 +93,14 @@ export default function App() {
   ])).sort();
 
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200 overflow-x-hidden">
+    <div className="min-h-screen bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200 overflow-x-hidden rtl" dir="rtl">
       <AnimatePresence mode="wait">
         {currentView === 'home' && (
           <motion.div
             key="home"
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
           >
             <Home
@@ -130,9 +130,9 @@ export default function App() {
         {currentView === 'source-discovery' && (
           <motion.div
             key="source-discovery"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
             <SourceDiscovery
@@ -154,9 +154,9 @@ export default function App() {
         {currentView === 'add-recipe' && (
           <motion.div
             key="add-recipe"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
             <AddRecipe
@@ -172,9 +172,9 @@ export default function App() {
         {currentView === 'edit-recipe' && selectedRecipe && (
           <motion.div
             key="edit-recipe"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
             <RecipeEditor
@@ -192,9 +192,9 @@ export default function App() {
         {currentView === 'recipe' && selectedRecipe && (
           <motion.div
             key="recipe"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
             <RecipeView
@@ -221,9 +221,9 @@ export default function App() {
         {currentView === 'add-technique' && (
           <motion.div
             key="add-technique"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
             <TechniqueEditor
@@ -237,9 +237,9 @@ export default function App() {
         {currentView === 'edit-technique' && selectedTechnique && (
           <motion.div
             key="edit-technique"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
             <TechniqueEditor
@@ -255,9 +255,9 @@ export default function App() {
         {currentView === 'technique' && selectedTechnique && (
           <motion.div
             key="technique"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
+            exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
             <TechniqueView
