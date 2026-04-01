@@ -12,26 +12,31 @@ export interface AIParsedRecipe {
 
 export async function parseRecipeWithAI(rawText: string): Promise<AIParsedRecipe> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-if (!apiKey) {
-  throw new Error("Gemini API key is not configured.");
-}
+  if (!apiKey) {
+    throw new Error("Gemini API key is not configured.");
+  }
 
   const ai = new GoogleGenAI({ apiKey });
 
-  const systemInstruction = `Role: Expert Culinary Data Architect & Translator.
-Task: Convert raw YouTube description text into a structured, professional English recipe.
+  const systemInstruction = `Role: Expert Culinary Data Architect.
+Task: Convert raw text (like YouTube descriptions) into a structured recipe JSON object.
+
+Language Rule: 
+IMPORTANT: Maintain the original language of the input. 
+- If the input text is in HEBREW, all fields in the JSON response (title, item names, steps, notes) MUST be in HEBREW.
+- Do not translate Hebrew to English.
+- Use professional culinary terminology in the original language.
 
 Input Handling:
 1. Clean the text: Remove social media links, sponsor shoutouts, and non-culinary information.
-2. Translation: If the input is in Hebrew, translate it to precise, professional English. Use specific culinary verbs (e.g., "Whisk," "Fold," "Sauté," "Simmer").
-3. Terminology: Ensure units are standardized (g, ml, cups, tsp, tbsp).
-4. Prep Info: Extract any crucial preparation information that must be known before starting (e.g., "Requires overnight proofing", "Ingredients must be room temperature").
-5. Reference Videos: Extract any YouTube URLs found in the text and provide a short note about what the video demonstrates.
+2. Terminology: Ensure units are standardized (g, ml, cups, tsp, tbsp).
+3. Prep Info: Extract any crucial preparation information that must be known before starting (e.g., "Requires overnight proofing", "Ingredients must be room temperature").
+4. Reference Videos: Extract any YouTube URLs found in the text and provide a short note about what the video demonstrates.
 
-Constraint: Do not include any conversational text or explanations. Return ONLY the JSON object.`;
+Constraint: Return ONLY the JSON object. No conversational text.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-1.5-flash", // מומלץ להשתמש ב-Flash ליציבות ומהירות
     contents: rawText,
     config: {
       systemInstruction,
@@ -41,7 +46,7 @@ Constraint: Do not include any conversational text or explanations. Return ONLY 
         properties: {
           title: {
             type: Type.STRING,
-            description: "Recipe Name in English",
+            description: "Recipe Name in the original language of the input",
           },
           servings: {
             type: Type.INTEGER,
@@ -54,7 +59,7 @@ Constraint: Do not include any conversational text or explanations. Return ONLY 
               properties: {
                 item: {
                   type: Type.STRING,
-                  description: "Ingredient Name",
+                  description: "Ingredient Name in the original language",
                 },
                 amount: {
                   type: Type.NUMBER,
@@ -74,11 +79,11 @@ Constraint: Do not include any conversational text or explanations. Return ONLY 
             items: {
               type: Type.STRING,
             },
-            description: "Array of step descriptions",
+            description: "Array of step descriptions in the original language",
           },
           culinary_notes: {
             type: Type.STRING,
-            description: "Any extra tips or scientific explanations from the text",
+            description: "Extra tips or scientific explanations from the text",
           },
           prep_info: {
             type: Type.STRING,
@@ -95,7 +100,7 @@ Constraint: Do not include any conversational text or explanations. Return ONLY 
                 },
                 note: {
                   type: Type.STRING,
-                  description: "Short note about the video (e.g., 'Main recipe source')",
+                  description: "Short note about the video in the original language",
                 },
               },
               required: ["url", "note"],
