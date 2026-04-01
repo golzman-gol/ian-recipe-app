@@ -116,33 +116,31 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
         </div>
       </div>
 
-      {/* Navigation Footer */}
+      {/* Navigation Footer - Optimized Sizing */}
       <div className="p-6 border-t border-zinc-800 grid grid-cols-2 gap-4 pb-safe">
-        {/* בממשק עברי, 'הקודם' נמצא בצד ימין (ראשון ב-DOM) ומצביע ימינה */}
         <button
           onClick={handlePrev}
           disabled={currentStep === -1}
-          className="flex items-center justify-center gap-3 py-8 rounded-3xl bg-zinc-900 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-2xl font-medium"
+          className="flex items-center justify-center gap-3 py-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-medium"
         >
-          <ChevronRight className="w-10 h-10" />
+          <ChevronRight className="w-6 h-6" />
           הקודם
         </button>
         
-        {/* 'הבא' נמצא בצד שמאל ומצביע שמאלה */}
         <button
           onClick={handleNext}
           disabled={currentStep === totalSteps - 1}
-          className="flex items-center justify-center gap-3 py-8 rounded-3xl bg-zinc-100 text-zinc-950 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-2xl font-medium"
+          className="flex items-center justify-center gap-3 py-4 rounded-2xl bg-zinc-100 text-zinc-950 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-lg font-medium"
         >
           {currentStep === totalSteps - 1 ? (
             <>
               סיום
-              <CheckCircle2 className="w-10 h-10" />
+              <CheckCircle2 className="w-6 h-6" />
             </>
           ) : (
             <>
               הבא
-              <ChevronLeft className="w-10 h-10" />
+              <ChevronLeft className="w-6 h-6" />
             </>
           )}
         </button>
