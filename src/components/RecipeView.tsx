@@ -146,7 +146,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         
         <button 
           onClick={() => setIsCookingMode(true)} 
-          className="flex items-center gap-1 sm:gap-2 bg-zinc-900 text-white px-3 py-2 sm:px-5 sm:py-3 rounded-full hover:bg-zinc-800 transition-colors font-medium text-xs sm:text-base shadow-sm active:scale-[0.98] mr-1 sm:mr-2 whitespace-nowrap"
+          className="flex items-center gap-1 sm:gap-2 bg-zinc-900 text-white px-2 py-1.5 sm:px-5 sm:py-3 rounded-full hover:bg-zinc-800 transition-colors font-bold text-[10px] sm:text-base shadow-sm active:scale-[0.98] mr-1 sm:mr-2 whitespace-nowrap"
         >
           <ChefHat className="w-4 h-4 sm:w-5 h-5" /> מצב בישול
         </button>
@@ -203,17 +203,17 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {/* Ingredients - Fixed iPhone Input */}
+      {/* Ingredients - Fixed Multiplier Overlap for iPhone */}
       <div className="bg-white rounded-3xl p-6 mb-10 border border-zinc-200 shadow-sm break-inside-avoid">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 print:hidden">
           <h2 className="text-2xl font-bold text-zinc-900">מרכיבים</h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 bg-zinc-100 rounded-full p-1 border">
+          <div className="flex items-center gap-2 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0">
+            <div className="flex items-center gap-1 bg-zinc-100 rounded-full p-1 border flex-shrink-0">
               {multipliers.map((m) => (
-                <button key={m} onClick={() => { setMultiplier(m); setCustomMultiplier(''); }} className={`px-4 py-2 rounded-full text-sm font-bold ${activeMultiplier === m && !customMultiplier ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-600'}`}>{m}x</button>
+                <button key={m} onClick={() => { setMultiplier(m); setCustomMultiplier(''); }} className={`px-2.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold ${activeMultiplier === m && !customMultiplier ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-600'}`}>{m}x</button>
               ))}
             </div>
-            <input type="number" step="0.1" placeholder="מותאם" value={customMultiplier} onChange={(e) => setCustomMultiplier(e.target.value)} className="w-20 sm:w-28 px-2 sm:px-4 py-2 rounded-full border border-zinc-200 bg-zinc-50 text-sm sm:text-base font-medium focus:ring-2 focus:ring-zinc-900 outline-none" />
+            <input type="number" step="0.1" placeholder="מותאם" value={customMultiplier} onChange={(e) => setCustomMultiplier(e.target.value)} className="w-20 sm:w-28 px-2 sm:px-4 py-2 rounded-full border border-zinc-200 bg-zinc-50 text-sm sm:text-base font-medium focus:ring-2 focus:ring-zinc-900 outline-none flex-shrink-0" />
           </div>
         </div>
         <p className="text-base text-zinc-500 mb-6 font-medium text-right">כמות: {recipe.servings_base * activeMultiplier} מנות</p>        
