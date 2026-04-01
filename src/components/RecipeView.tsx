@@ -216,6 +216,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
                 <button key={m} onClick={() => { setMultiplier(m); setCustomMultiplier(''); }} className={`px-4 py-2 rounded-full text-sm font-bold ${activeMultiplier === m && !customMultiplier ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-600'}`}>{m}x</button>
               ))}
             </div>
+            <input type="number" step="0.1" placeholder="מותאם" value={customMultiplier} onChange={(e) => setCustomMultiplier(e.target.value)} className="w-28 px-4 py-2 rounded-full border border-zinc-200 bg-zinc-50 text-base font-medium focus:ring-2 focus:ring-zinc-900 outline-none" />
           </div>
         </div>
         <p className="text-base text-zinc-500 mb-6 font-medium text-right print:text-zinc-900">כמות: {recipe.servings_base * activeMultiplier} מנות</p>        
