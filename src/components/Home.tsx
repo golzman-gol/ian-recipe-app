@@ -267,49 +267,56 @@ export function Home({
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {filteredItems.map(({ type, item }) => (
-            <div
-              key={`${type}-${item.id}`}
-              onClick={() => type === 'recipe' ? onSelectRecipe(item.id) : onSelectTechnique(item.id)}
-              className={`border rounded-2xl p-5 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex flex-col ${
-                type === 'recipe' ? 'bg-white border-zinc-200' : 'bg-zinc-50 border-zinc-300'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500">
-                {type === 'recipe' ? (
-                  <><Utensils className="w-4 h-4" /> מתכון</>
-                ) : (
-                  <><BookOpen className="w-4 h-4" /> טכניקה</>
-                )}
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-zinc-900 mb-2">
-                  {'name' in item ? item.name : item.title}
-                </h3>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {item.tags?.map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-200/50 text-zinc-800"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+          {filteredItems.map(({ type, item }) => {
+            // טיפול בשמות משתנים שונים וגיבוי לתמונת סעיף ראשון
+            const displayImage = ('image_base64' in item ? item.image_base64 : undefined) || 
+                                ('image_base_64' in item ? item.image_base_64 : undefined) ||
+                                (type === 'technique' && (item as Technique).sections?.[0]?.image_base_64);
+
+            return (
+              <div
+                key={`${type}-${item.id}`}
+                onClick={() => type === 'recipe' ? onSelectRecipe(item.id) : onSelectTechnique(item.id)}
+                className={`border rounded-2xl p-5 cursor-pointer hover:shadow-md transition-all active:scale-[0.98] flex flex-col ${
+                  type === 'recipe' ? 'bg-white border-zinc-200' : 'bg-zinc-50 border-zinc-300'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500">
+                  {type === 'recipe' ? (
+                    <><Utensils className="w-4 h-4" /> מתכון</>
+                  ) : (
+                    <><BookOpen className="w-4 h-4" /> טכניקה</>
+                  )}
                 </div>
-                {item.image_base64 && (
-                  <div className="w-full aspect-video rounded-xl overflow-hidden mb-3 border border-zinc-200">
-                    <img src={item.image_base64} alt={'name' in item ? item.name : item.title} className="w-full h-full object-cover" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-zinc-900 mb-2">
+                    {'name' in item ? item.name : item.title}
+                  </h3>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {item.tags?.map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-200/50 text-zinc-800"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  {displayImage && (
+                    <div className="w-full aspect-video rounded-xl overflow-hidden mb-3 border border-zinc-200">
+                      <img src={displayImage} alt={'name' in item ? item.name : item.title} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+                {type === 'recipe' && (
+                  <div className="text-sm text-zinc-500 flex justify-between items-center mt-4 pt-4 border-t border-zinc-100">
+                    <span>{(item as Recipe).ingredients.length} מצרכים</span>
+                    <span>{(item as Recipe).servings_base} מנות</span>
                   </div>
                 )}
               </div>
-              {type === 'recipe' && (
-                <div className="text-sm text-zinc-500 flex justify-between items-center mt-4 pt-4 border-t border-zinc-100">
-                  <span>{(item as Recipe).ingredients.length} מצרכים</span>
-                  <span>{(item as Recipe).servings_base} מנות</span>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
