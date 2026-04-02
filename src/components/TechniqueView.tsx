@@ -108,7 +108,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
         </div>
       </div>
 
-      {/* Main Technique Image - Full Width in Print */}
+      {/* Main Technique Image */}
       {technique.image_base_64 && (
         <div className="mb-8 rounded-3xl overflow-hidden border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh] shadow-sm print:relative print:top-0 print:max-h-none print:aspect-auto print:rounded-none print:shadow-none print:border-0 print:mb-12">
           <img src={technique.image_base_64} className="w-full h-full object-cover print:rounded-2xl" />
@@ -143,7 +143,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
               {expandedSections[section.id] ? <ChevronUp className="w-5 h-5 text-zinc-400" /> : <ChevronDown className="w-5 h-5 text-zinc-400" />}
             </button>
 
-            {/* Print Title - Visible only in PDF */}
+            {/* Print Title */}
             <h2 className="hidden print:block text-3xl font-bold p-6 pb-4 border-b border-zinc-50">
               {idx + 1}. {section.title || `חלק ${idx + 1}`}
             </h2>
@@ -217,16 +217,30 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           h1, h2, h3, p, div { text-align: right !important; color: #000 !important; }
           .break-inside-avoid { page-break-inside: avoid; break-inside: avoid; }
           img { max-width: 100% !important; height: auto !important; }
-          /* Force all sections to be visible regardless of React state */
           .hidden.print\\:block { display: block !important; }
         }
 
+        /* תיקון יישור נקודות (Hanging Indent) לרשימות בעברית */
         .prose ul {
-          padding-right: 1.5rem !important;
-          list-style-position: outside !important;
+          list-style-type: none !important;
+          padding-right: 0 !important;
+          margin-right: 0 !important;
         }
+
         .prose li {
+          position: relative !important;
+          padding-right: 1.5rem !important; /* מרחב לנקודה */
           margin-bottom: 0.5rem;
+          text-align: right;
+        }
+
+        .prose li::before {
+          content: "•";
+          position: absolute;
+          right: 0;
+          top: 0;
+          color: currentColor;
+          font-weight: bold;
         }
       `}</style>
     </div>
