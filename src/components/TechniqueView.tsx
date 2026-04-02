@@ -108,7 +108,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
         </div>
       </div>
 
-      {/* Main Image */}
+      {/* Main Technique Image */}
       {technique.image_base_64 && (
         <div className="mb-8 rounded-3xl overflow-hidden border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh] shadow-sm print:relative print:top-0 print:max-h-none print:aspect-auto print:rounded-none print:shadow-none print:border-0 print:mb-12">
           <img src={technique.image_base_64} className="w-full h-full object-cover print:rounded-2xl" />
@@ -155,7 +155,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
                 </div>
               )}
 
-              <div className="prose prose-zinc prose-rtl max-w-none text-zinc-800 leading-relaxed whitespace-pre-wrap break-words text-right text-lg">
+              <div className="prose prose-zinc prose-rtl max-w-none text-zinc-800 leading-relaxed text-right text-lg">
                 <ReactMarkdown>{section.content}</ReactMarkdown>
               </div>
 
@@ -220,19 +220,22 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           .hidden.print\\:block { display: block !important; }
         }
 
-        /* הפתרון הסופי והיציב ליישור נקודות (Hanging Indent) */
+        /* הפתרון הסופי ליישור נקודות (Hanging Indent) וצמצום רווחים */
         .prose ul {
           list-style: none !important;
           padding-right: 0 !important;
-          margin: 1rem 0 !important;
+          margin-top: 0.5rem !important;
+          margin-bottom: 0.5rem !important;
         }
 
         .prose li {
           position: relative !important;
           padding-right: 1.5rem !important; /* מרחב לנקודה */
-          margin-bottom: 0.75rem !important;
-          display: block !important; /* חזרה לבלוק כדי לאפשר ירידת שורה תקינה */
+          margin-bottom: 0.35rem !important; /* רווח קטן בין פריטים */
+          margin-top: 0 !important;
+          display: block !important;
           text-align: right !important;
+          line-height: 1.6 !important;
         }
 
         .prose li::before {
@@ -244,12 +247,17 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           text-align: right !important;
           font-weight: bold;
           color: #3f3f46;
+          font-size: 1.2rem;
         }
 
-        /* מניעת רווחים מיותרים בתוך ה-Markdown */
+        /* ביטול רווחים עודפים בתוך ה-Markdown */
         .prose li p {
           margin: 0 !important;
           display: inline !important;
+        }
+
+        .prose p {
+          margin-bottom: 0.75rem !important;
         }
       `}</style>
     </div>
