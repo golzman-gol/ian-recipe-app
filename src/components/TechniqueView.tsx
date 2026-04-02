@@ -220,27 +220,34 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           .hidden.print\\:block { display: block !important; }
         }
 
-        /* תיקון יישור נקודות (Hanging Indent) לרשימות בעברית */
+        /* הפתרון הסופי ליישור נקודות (Hanging Indent) כמו בוורד */
         .prose ul {
-          list-style-type: none !important;
-          padding-right: 0 !important;
-          margin-right: 0 !important;
+          list-style: none !important;
+          padding: 0 !important;
+          margin: 1.5rem 0 !important;
         }
 
         .prose li {
-          position: relative !important;
-          padding-right: 1.5rem !important; /* מרחב לנקודה */
-          margin-bottom: 0.5rem;
-          text-align: right;
+          display: flex !important;
+          align-items: flex-start !important;
+          gap: 0.75rem !important;
+          margin-bottom: 0.75rem !important;
+          text-align: right !important;
+          direction: rtl !important;
         }
 
         .prose li::before {
           content: "•";
-          position: absolute;
-          right: 0;
-          top: 0;
-          color: currentColor;
+          color: #3f3f46; /* צבע אפור כהה */
           font-weight: bold;
+          font-size: 1.2rem;
+          line-height: 1.6;
+          flex-shrink: 0;
+        }
+
+        .prose li > p {
+          margin: 0 !important;
+          flex: 1;
         }
       `}</style>
     </div>
