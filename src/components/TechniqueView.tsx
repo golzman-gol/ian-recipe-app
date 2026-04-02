@@ -108,7 +108,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
         </div>
       </div>
 
-      {/* Main Technique Image */}
+      {/* Main Image */}
       {technique.image_base_64 && (
         <div className="mb-8 rounded-3xl overflow-hidden border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh] shadow-sm print:relative print:top-0 print:max-h-none print:aspect-auto print:rounded-none print:shadow-none print:border-0 print:mb-12">
           <img src={technique.image_base_64} className="w-full h-full object-cover print:rounded-2xl" />
@@ -220,34 +220,36 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           .hidden.print\\:block { display: block !important; }
         }
 
-        /* הפתרון הסופי ליישור נקודות (Hanging Indent) כמו בוורד */
+        /* הפתרון הסופי והיציב ליישור נקודות (Hanging Indent) */
         .prose ul {
           list-style: none !important;
-          padding: 0 !important;
-          margin: 1.5rem 0 !important;
+          padding-right: 0 !important;
+          margin: 1rem 0 !important;
         }
 
         .prose li {
-          display: flex !important;
-          align-items: flex-start !important;
-          gap: 0.75rem !important;
+          position: relative !important;
+          padding-right: 1.5rem !important; /* מרחב לנקודה */
           margin-bottom: 0.75rem !important;
+          display: block !important; /* חזרה לבלוק כדי לאפשר ירידת שורה תקינה */
           text-align: right !important;
-          direction: rtl !important;
         }
 
         .prose li::before {
           content: "•";
-          color: #3f3f46; /* צבע אפור כהה */
+          position: absolute !important;
+          right: 0 !important;
+          top: 0 !important;
+          width: 1rem !important;
+          text-align: right !important;
           font-weight: bold;
-          font-size: 1.2rem;
-          line-height: 1.6;
-          flex-shrink: 0;
+          color: #3f3f46;
         }
 
-        .prose li > p {
+        /* מניעת רווחים מיותרים בתוך ה-Markdown */
+        .prose li p {
           margin: 0 !important;
-          flex: 1;
+          display: inline !important;
         }
       `}</style>
     </div>
