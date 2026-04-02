@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Recipe, RecipeNote, Technique } from '../types';
+import { Recipe, RecipeNote, Technique, LinkedTechnique } from '../types';
 import { ArrowLeft, Play, Plus, Clock, ChefHat, Trash2, Edit3, Image as ImageIcon, AlertTriangle, Video, BookOpen, ThermometerSnowflake, Link, Download, Check, X, FileText } from 'lucide-react';
 import { CookingMode } from './CookingMode';
 
@@ -11,7 +11,7 @@ interface RecipeViewProps {
   onUpdateRecipe: (updated: Recipe) => void;
   onDeleteRecipe: (id: string) => void;
   onEdit: () => void;
-  onSelectTechnique: (id: string) => void;
+  onSelectTechnique: (id: string, sectionId?: string) => void; // תמיכה בקישור לסעיף
   onSelectRecipe: (id: string) => void;
   onTagClick: (tag: string) => void;
 }
@@ -113,6 +113,9 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
 
   if (isCookingMode) return <CookingMode recipe={{ ...recipe, ingredients: scaledIngredients }} onExit={() => setIsCookingMode(false)} />;
 
+  // לוגיקה להחזרת התמונה (תומך בשני שמות השדות)
+  const displayImage = recipe.image_base_6_4 || (recipe as any).image_base64;
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
       {/* Delete Confirmation Modal */}
@@ -129,9 +132,9 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {/* Header - Fixed iPhone Layout */}
-      <div className="flex items-center justify-between mb-8 print:hidden">
-        <div className="flex items-center gap-1 sm:gap-4">
+      {/* Header - Fixed Alignment for iPhone */}
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-8 print:hidden">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button onClick={onBack} className="p-2 sm:p-3 -ml-2 sm:-ml-3 rounded-full hover:bg-zinc-100 transition-colors" title="חזרה">
             <ArrowLeft className="w-6 h-6 sm:w-7 h-7 text-zinc-900 rotate-180" />
           </button>
@@ -141,21 +144,22 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
             <button onClick={onEdit} className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100 transition-colors" title="עריכה"><Edit3 className="w-5 h-5 sm:w-6 h-6" /></button>
             <button onClick={handlePrintPdf} className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100" title="PDF / הדפסה"><FileText className="w-5 h-5 sm:w-6 h-6" /></button>
             <button onClick={handleExportHtml} className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100" title="ייצוא HTML"><Download className="w-5 h-5 sm:w-6 h-6" /></button>
+            
+            {/* Cooking Mode - Now next to the icons */}
+            <button 
+              onClick={() => setIsCookingMode(true)} 
+              className="flex items-center gap-1 sm:gap-2 bg-zinc-900 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-full hover:bg-zinc-800 transition-colors font-bold text-[10px] sm:text-sm shadow-sm active:scale-[0.98] mr-2 whitespace-nowrap"
+            >
+              <ChefHat className="w-4 h-4 sm:w-5 h-5" /> מצב בישול
+            </button>
           </div>
         </div>
-        
-        <button 
-          onClick={() => setIsCookingMode(true)} 
-          className="flex items-center gap-1 sm:gap-2 bg-zinc-900 text-white px-2 py-1.5 sm:px-5 sm:py-3 rounded-full hover:bg-zinc-800 transition-colors font-bold text-[10px] sm:text-base shadow-sm active:scale-[0.98] mr-1 sm:mr-2 whitespace-nowrap"
-        >
-          <ChefHat className="w-4 h-4 sm:w-5 h-5" /> מצב בישול
-        </button>
       </div>
 
-      {/* Image Section */}
-      {recipe.image_base64 && (
+      {/* Image Section - RESTORED */}
+      {displayImage && (
         <div className="mb-8 rounded-3xl overflow-hidden shadow-sm border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh]">
-          <img src={recipe.image_base64} alt={recipe.name} className="w-full h-full object-cover" />
+          <img src={displayImage} alt={recipe.name} className="w-full h-full object-cover" />
         </div>
       )}
 
@@ -168,14 +172,28 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
           ))}
         </div>
         
+        {/* Linked Techniques with Deep Linking support */}
         {recipe.linkedTechniques && recipe.linkedTechniques.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mt-4">
             <BookOpen className="w-5 h-5 text-zinc-400" />
-            {recipe.linkedTechniques.map(id => {
-              const tech = techniques.find(t => t.id === id);
-              return tech ? (
-                <button key={id} onClick={() => onSelectTechnique(id)} className="bg-zinc-100 border border-zinc-200 text-sm font-medium text-zinc-700 rounded-xl px-3 py-1.5 hover:bg-zinc-200">{tech.title}</button>
-              ) : null;
+            {recipe.linkedTechniques.map((link, idx) => {
+              const techId = typeof link === 'string' ? link : link.techniqueId;
+              const sectionId = typeof link === 'string' ? undefined : link.sectionId;
+              const tech = techniques.find(t => t.id === techId);
+              
+              if (!tech) return null;
+              const section = sectionId ? tech.sections?.find(s => s.id === sectionId) : null;
+
+              return (
+                <button 
+                  key={idx} 
+                  onClick={() => onSelectTechnique(techId, sectionId)} 
+                  className="bg-zinc-100 border border-zinc-200 text-sm font-medium text-zinc-700 rounded-xl px-3 py-1.5 hover:bg-zinc-200 flex flex-col items-start"
+                >
+                  <span>{tech.title}</span>
+                  {section && <span className="text-[10px] text-zinc-400 font-bold">({section.title})</span>}
+                </button>
+              );
             })}
           </div>
         )}
@@ -203,7 +221,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {/* Ingredients - Fixed Multiplier Overlap for iPhone */}
+      {/* Ingredients */}
       <div className="bg-white rounded-3xl p-6 mb-10 border border-zinc-200 shadow-sm break-inside-avoid">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 print:hidden">
           <h2 className="text-2xl font-bold text-zinc-900">מרכיבים</h2>
@@ -258,7 +276,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {/* REFERENCES - YouTube & Web Handling */}
+      {/* REFERENCES */}
       {recipe.reference_videos && recipe.reference_videos.length > 0 && (
         <div className="border-t border-zinc-200 pt-10 mb-10 space-y-6 print:hidden">
           <h2 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><Video className="w-6 h-6" /> REFERENCES</h2>
