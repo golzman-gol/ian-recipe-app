@@ -15,19 +15,20 @@ interface TechniqueViewProps {
 
 export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, onSelectRecipe, onTagClick }: TechniqueViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    if (technique.sections && technique.sections.length > 0) {
-      initial[technique.sections[0].id] = true;
-    }
-    return initial;
-  });
+  
+  // שינוי יחיד: כל הסעיפים מתחילים סגורים (אובייקט ריק)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const associatedRecipes = recipes.filter(r => r.linkedTechniques?.includes(technique.id));
+  // תמיכה בחיפוש בתוך מערך שיכול להכיל אובייקטים או מחרוזות
+  const associatedRecipes = recipes.filter(r => 
+    r.linkedTechniques?.some(link => 
+      typeof link === 'string' ? link === technique.id : link.techniqueId === technique.id
+    )
+  );
 
   const handlePrintPdf = () => window.print();
 
@@ -57,7 +58,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
     ${(technique.sections || []).map((s, idx) => `
       <div class="section">
         <h2 class="section-title">${idx + 1}. ${s.title}</h2>
-        ${s.image_base_64 ? `<img src="${s.image_base_64}">` : ''}
+        ${(s.image_base_6_4 || (s as any).image_base_64) ? `<img src="${s.image_base_6_4 || (s as any).image_base_64}">` : ''}
         <div class="content">${s.content}</div>
       </div>
     `).join('')}
@@ -74,6 +75,9 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // פתרון להצגת התמונה: בודק את שני שמות השדות האפשריים (Type ישן וחדש)
+  const mainImage = technique.image_base_6_4 || (technique as any).image_base_64;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
@@ -109,9 +113,9 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
       </div>
 
       {/* Main Image */}
-      {technique.image_base_64 && (
+      {mainImage && (
         <div className="mb-8 rounded-3xl overflow-hidden border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh] shadow-sm print:relative print:top-0 print:max-h-none print:aspect-auto print:rounded-none print:shadow-none print:border-0 print:mb-12">
-          <img src={technique.image_base_64} className="w-full h-full object-cover print:rounded-2xl" />
+          <img src={mainImage} className="w-full h-full object-cover print:rounded-2xl" />
         </div>
       )}
 
@@ -130,62 +134,68 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
 
       {/* Modular Sections */}
       <div className="space-y-6 mb-12">
-        {(technique.sections || []).map((section, idx) => (
-          <div key={section.id} className={`bg-white border rounded-3xl transition-all duration-300 overflow-hidden print:border-0 print:border-b print:border-zinc-100 print:rounded-none print:shadow-none break-inside-avoid ${expandedSections[section.id] ? 'border-zinc-900 ring-1 ring-zinc-900 shadow-md' : 'border-zinc-200 hover:border-zinc-400'}`}>
-            <button 
-              onClick={() => toggleSection(section.id)}
-              className="w-full flex items-center justify-between p-6 text-right print:hidden"
-            >
-              <div className="flex items-center gap-4">
-                <span className="w-8 h-8 rounded-full bg-zinc-100 text-zinc-900 flex items-center justify-center font-bold text-sm">{idx + 1}</span>
-                <h3 className="text-xl font-bold text-zinc-900">{section.title || `חלק ${idx + 1}`}</h3>
-              </div>
-              {expandedSections[section.id] ? <ChevronUp className="w-5 h-5 text-zinc-400" /> : <ChevronDown className="w-5 h-5 text-zinc-400" />}
-            </button>
-
-            {/* Print Title */}
-            <h2 className="hidden print:block text-3xl font-bold p-6 pb-4 border-b border-zinc-50">
-              {idx + 1}. {section.title || `חלק ${idx + 1}`}
-            </h2>
-
-            <div className={`p-6 pt-0 space-y-6 animate-in fade-in slide-in-from-top-2 ${expandedSections[section.id] ? 'block' : 'hidden print:block'}`}>
-              {section.image_base_64 && (
-                <div className="rounded-2xl overflow-hidden border border-zinc-200 aspect-video mb-4 mt-6 print:rounded-xl">
-                  <img src={section.image_base_64} className="w-full h-full object-cover" />
+        {(technique.sections || []).map((section, idx) => {
+          // תמיכה בשני שמות השדות עבור תמונות בסעיפים
+          const sectionImage = section.image_base_6_4 || (section as any).image_base_64;
+          
+          return (
+            <div key={section.id} className={`bg-white border rounded-3xl transition-all duration-300 overflow-hidden print:border-0 print:border-b print:border-zinc-100 print:rounded-none print:shadow-none break-inside-avoid ${expandedSections[section.id] ? 'border-zinc-900 ring-1 ring-zinc-900 shadow-md' : 'border-zinc-200 hover:border-zinc-400'}`}>
+              <button 
+                onClick={() => toggleSection(section.id)}
+                className="w-full flex items-center justify-between p-6 text-right print:hidden"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="w-8 h-8 rounded-full bg-zinc-100 text-zinc-900 flex items-center justify-center font-bold text-sm">{idx + 1}</span>
+                  <h3 className="text-xl font-bold text-zinc-900">{section.title || `חלק ${idx + 1}`}</h3>
                 </div>
-              )}
+                {expandedSections[section.id] ? <ChevronUp className="w-5 h-5 text-zinc-400" /> : <ChevronDown className="w-5 h-5 text-zinc-400" />}
+              </button>
 
-              <div className="prose prose-zinc prose-rtl max-w-none text-zinc-800 leading-relaxed text-right text-lg">
-                <ReactMarkdown>{section.content}</ReactMarkdown>
-              </div>
+              {/* Print Title */}
+              <h2 className="hidden print:block text-3xl font-bold p-6 pb-4 border-b border-zinc-50">
+                {idx + 1}. {section.title || `חלק ${idx + 1}`}
+              </h2>
 
-              {section.references && section.references.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6 print:hidden">
-                  {section.references.map((ref, rIdx) => (
-                    <a 
-                      key={rIdx} 
-                      href={ref.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-start justify-between group hover:bg-zinc-100 transition-colors"
-                    >
-                      <div className="flex gap-4">
-                        <div className="w-16 aspect-video bg-zinc-200 rounded-lg overflow-hidden flex-shrink-0">
-                          {ref.thumbnailUrl ? <img src={ref.thumbnailUrl} className="w-full h-full object-cover" /> : <LinkIcon className="w-full h-full p-4 text-zinc-400" />}
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-zinc-400 uppercase text-right">{ref.channelName || 'Source'}</p>
-                          <p className="text-xs font-medium text-zinc-900 line-clamp-1 text-right">{ref.note || 'Reference'}</p>
-                        </div>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
-                    </a>
-                  ))}
+              <div className={`p-6 pt-0 space-y-6 animate-in fade-in slide-in-from-top-2 ${expandedSections[section.id] ? 'block' : 'hidden print:block'}`}>
+                {/* הצגת התמונה (אם קיימת באחד משני השדות) */}
+                {sectionImage && (
+                  <div className="rounded-2xl overflow-hidden border border-zinc-200 aspect-video mb-4 mt-6 print:rounded-xl">
+                    <img src={sectionImage} className="w-full h-full object-cover" />
+                  </div>
+                )}
+
+                <div className="prose prose-zinc prose-rtl max-w-none text-zinc-800 leading-relaxed text-right text-lg">
+                  <ReactMarkdown>{section.content}</ReactMarkdown>
                 </div>
-              )}
+
+                {section.references && section.references.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6 print:hidden">
+                    {section.references.map((ref, rIdx) => (
+                      <a 
+                        key={rIdx} 
+                        href={ref.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="p-4 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-start justify-between group hover:bg-zinc-100 transition-colors"
+                      >
+                        <div className="flex gap-4">
+                          <div className="w-16 aspect-video bg-zinc-200 rounded-lg overflow-hidden flex-shrink-0">
+                            {ref.thumbnailUrl ? <img src={ref.thumbnailUrl} className="w-full h-full object-cover" /> : <LinkIcon className="w-full h-full p-4 text-zinc-400" />}
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase text-right">{ref.channelName || 'Source'}</p>
+                            <p className="text-xs font-medium text-zinc-900 line-clamp-1 text-right">{ref.note || 'Reference'}</p>
+                          </div>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 transition-colors" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Associated Recipes */}
@@ -220,14 +230,12 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           .hidden.print\\:block { display: block !important; }
         }
 
-        /* עיצוב רשימות וורד-סטייל (Hanging Indent) */
         .prose ul, .prose ol {
           padding-right: 0 !important;
           margin-top: 0.5rem !important;
           margin-bottom: 0.5rem !important;
         }
 
-        /* הגדרת פריט ברשימה כבלוק יציב */
         .prose li {
           position: relative !important;
           margin-bottom: 0.35rem !important;
@@ -237,7 +245,6 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           line-height: 1.6 !important;
         }
 
-        /* נקודות (Unordered List) */
         .prose ul > li {
           padding-right: 1.5rem !important;
           list-style: none !important;
@@ -253,7 +260,6 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           font-size: 1.2rem;
         }
 
-        /* מספרים (Ordered List) */
         .prose ol {
           list-style-type: decimal !important;
           padding-right: 2rem !important;
@@ -265,15 +271,12 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           list-style-position: outside !important;
         }
 
-        /* טיפול ברשימה מקוננת (מספרים בתוך נקודות) */
-        /* זה החלק שמוודא שהמספרים ירדו שורה ויוסטו פנימה */
         .prose li > ol, .prose li > ul {
           display: block !important;
           margin-top: 0.5rem !important;
-          padding-right: 2rem !important; /* הזחה של תת-הסעיפים */
+          padding-right: 2rem !important;
         }
 
-        /* ביטול מרווחים מיותרים ש-Markdown יוצר */
         .prose li p {
           margin: 0 !important;
           display: inline !important;
