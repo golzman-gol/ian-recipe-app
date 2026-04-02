@@ -43,6 +43,12 @@ export interface ProcessImage {
   caption?: string;
 }
 
+// ממשק חדש לניהול קשר בין מתכון לטכניקה (עם תמיכה בסעיף ספציפי)
+export interface LinkedTechnique {
+  techniqueId: string;
+  sectionId?: string; // אופציונלי - מאפשר לקשר לחלק ספציפי בטכניקה
+}
+
 export interface Recipe {
   id: string;
   name: string;
@@ -55,7 +61,8 @@ export interface Recipe {
   original_ingredients?: Ingredient[];
   original_steps?: string[];
   image_base_64?: string;
-  linkedTechniques?: string[];
+  // עדכון השדה לתמיכה גם ב-ID פשוט (תאימות לאחור) וגם באובייקט קישור מפורט
+  linkedTechniques?: (string | LinkedTechnique)[];
   linkedRecipes?: string[];
   prep_info?: string;
   storage_info?: string;
