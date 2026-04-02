@@ -155,7 +155,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
                 </div>
               )}
 
-              <div className="prose prose-zinc max-w-none text-zinc-800 leading-relaxed whitespace-pre-wrap break-words text-right text-lg">
+              <div className="prose prose-zinc prose-rtl max-w-none text-zinc-800 leading-relaxed whitespace-pre-wrap break-words text-right text-lg">
                 <ReactMarkdown>{section.content}</ReactMarkdown>
               </div>
 
@@ -219,6 +219,14 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           img { max-width: 100% !important; height: auto !important; }
           /* Force all sections to be visible regardless of React state */
           .hidden.print\\:block { display: block !important; }
+        }
+
+        .prose ul {
+          padding-right: 1.5rem !important;
+          list-style-position: outside !important;
+        }
+        .prose li {
+          margin-bottom: 0.5rem;
         }
       `}</style>
     </div>
