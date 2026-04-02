@@ -108,7 +108,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
         </div>
       </div>
 
-      {/* Main Technique Image */}
+      {/* Main Image */}
       {technique.image_base_64 && (
         <div className="mb-8 rounded-3xl overflow-hidden border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh] shadow-sm print:relative print:top-0 print:max-h-none print:aspect-auto print:rounded-none print:shadow-none print:border-0 print:mb-12">
           <img src={technique.image_base_64} className="w-full h-full object-cover print:rounded-2xl" />
@@ -220,37 +220,60 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           .hidden.print\\:block { display: block !important; }
         }
 
-        /* הפתרון הסופי ליישור נקודות (Hanging Indent) וצמצום רווחים */
-        .prose ul {
-          list-style: none !important;
+        /* עיצוב רשימות וורד-סטייל (Hanging Indent) */
+        .prose ul, .prose ol {
           padding-right: 0 !important;
           margin-top: 0.5rem !important;
           margin-bottom: 0.5rem !important;
         }
 
+        /* הגדרת פריט ברשימה כבלוק יציב */
         .prose li {
           position: relative !important;
-          padding-right: 1.5rem !important; /* מרחב לנקודה */
-          margin-bottom: 0.35rem !important; /* רווח קטן בין פריטים */
+          margin-bottom: 0.35rem !important;
           margin-top: 0 !important;
           display: block !important;
           text-align: right !important;
           line-height: 1.6 !important;
         }
 
-        .prose li::before {
+        /* נקודות (Unordered List) */
+        .prose ul > li {
+          padding-right: 1.5rem !important;
+          list-style: none !important;
+        }
+
+        .prose ul > li::before {
           content: "•";
           position: absolute !important;
           right: 0 !important;
           top: 0 !important;
-          width: 1rem !important;
-          text-align: right !important;
           font-weight: bold;
           color: #3f3f46;
           font-size: 1.2rem;
         }
 
-        /* ביטול רווחים עודפים בתוך ה-Markdown */
+        /* מספרים (Ordered List) */
+        .prose ol {
+          list-style-type: decimal !important;
+          padding-right: 2rem !important;
+        }
+
+        .prose ol > li {
+          display: list-item !important;
+          padding-right: 0.5rem !important;
+          list-style-position: outside !important;
+        }
+
+        /* טיפול ברשימה מקוננת (מספרים בתוך נקודות) */
+        /* זה החלק שמוודא שהמספרים ירדו שורה ויוסטו פנימה */
+        .prose li > ol, .prose li > ul {
+          display: block !important;
+          margin-top: 0.5rem !important;
+          padding-right: 2rem !important; /* הזחה של תת-הסעיפים */
+        }
+
+        /* ביטול מרווחים מיותרים ש-Markdown יוצר */
         .prose li p {
           margin: 0 !important;
           display: inline !important;
