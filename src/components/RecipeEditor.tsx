@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Recipe, Ingredient, ReferenceLink, Technique, ProcessImage } from '../types';
+import { Recipe, Ingredient, ReferenceLink, Technique, ProcessImage, LinkedTechnique } from '../types';
 import { ArrowLeft, Save, Plus, Trash2, Image as ImageIcon, ChevronDown, ChevronRight, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface RecipeEditorProps {
@@ -58,7 +58,9 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
   
   const filteredTechniques = techniques.filter(t => 
     t.title.toLowerCase().includes(techniqueSearch.toLowerCase()) && 
-    !(recipe.linkedTechniques || []).includes(t.id)
+    !(recipe.linkedTechniques || []).some(link => 
+      typeof link === 'string' ? link === t.id : link.techniqueId === t.id
+    )
   );
   
   const [scaleMultiplier, setScaleMultiplier] = useState<string>('1');
@@ -84,12 +86,13 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
     setScaleMultiplier('1');
   };
 
+  // לוגיקה מעודכנת להעלאת תמונה - מבטיחה תאימות ל-Type החדש
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setRecipe({ ...recipe, image_base64: reader.result as string });
+        setRecipe({ ...recipe, image_base_6_4: reader.result as string });
       };
       reader.readAsDataURL(file);
     }
@@ -257,14 +260,38 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
 
   const toggleLinkedTechnique = (techniqueId: string) => {
     const current = recipe.linkedTechniques || [];
-    if (current.includes(techniqueId)) {
-      setRecipe({ ...recipe, linkedTechniques: current.filter(id => id !== techniqueId) });
+    const exists = current.some(link => 
+      typeof link === 'string' ? link === techniqueId : link.techniqueId === techniqueId
+    );
+
+    if (exists) {
+      setRecipe({ 
+        ...recipe, 
+        linkedTechniques: current.filter(link => 
+          typeof link === 'string' ? link !== techniqueId : link.techniqueId !== techniqueId
+        ) 
+      });
     } else {
-      setRecipe({ ...recipe, linkedTechniques: [...current, techniqueId] });
+      setRecipe({ ...recipe, linkedTechniques: [...current, { techniqueId }] });
+    }
+  };
+
+  const updateLinkedTechniqueSection = (techniqueId: string, sectionId: string | undefined) => {
+    const current = [...(recipe.linkedTechniques || [])];
+    const index = current.findIndex(link => 
+      typeof link === 'string' ? link === techniqueId : link.techniqueId === techniqueId
+    );
+
+    if (index !== -1) {
+      current[index] = { techniqueId, sectionId };
+      setRecipe({ ...recipe, linkedTechniques: current });
     }
   };
 
   const hasOriginal = recipe.original_ingredients || recipe.original_steps;
+
+  // פתרון התצוגה: מחפש את התמונה בשני השמות האפשריים כדי להבטיח שהיא תוצג בעורך
+  const currentImage = recipe.image_base_6_4 || (recipe as any).image_base64;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
@@ -283,14 +310,14 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
 
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
-        {/* Image Upload */}
+        {/* Image Upload - חזרה ללוגיקה הישנה והטובה */}
         <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
           <label className="block text-sm font-medium text-zinc-500 mb-3">תמונת המתכון</label>
-          {recipe.image_base64 ? (
+          {currentImage ? (
             <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
-              <img src={recipe.image_base64} alt="Recipe" className="w-full h-full object-cover" />
+              <img src={currentImage} alt="Recipe" className="w-full h-full object-cover" />
               <button
-                onClick={() => setRecipe({ ...recipe, image_base64: undefined })}
+                onClick={() => setRecipe({ ...recipe, image_base_6_4: undefined, image_base64: undefined } as any)}
                 className="absolute top-4 left-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 backdrop-blur-sm"
               >
                 <Trash2 className="w-5 h-5" />
@@ -363,14 +390,32 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
             <div>
               <label className="block text-sm font-medium text-zinc-500 mb-2">טכניקות מקושרות</label>
               <div className="relative">
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {(recipe.linkedTechniques || []).map(id => {
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {(recipe.linkedTechniques || []).map(link => {
+                    const id = typeof link === 'string' ? link : link.techniqueId;
+                    const sectionId = typeof link === 'string' ? undefined : link.sectionId;
                     const tech = techniques.find(t => t.id === id);
+                    
                     return tech ? (
-                      <span key={id} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-zinc-900 text-white">
-                        {tech.title}
-                        <button onClick={(e) => { e.stopPropagation(); toggleLinkedTechnique(id); }} className="text-zinc-400 hover:text-white mr-1">&times;</button>
-                      </span>
+                      <div key={id} className="flex flex-col p-3 rounded-2xl bg-zinc-900 text-white min-w-[150px]">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm font-bold">{tech.title}</span>
+                          <button onClick={() => toggleLinkedTechnique(id)} className="text-zinc-500 hover:text-white transition-colors">&times;</button>
+                        </div>
+                        
+                        {tech.sections && tech.sections.length > 0 && (
+                          <select
+                            value={sectionId || ''}
+                            onChange={(e) => updateLinkedTechniqueSection(id, e.target.value || undefined)}
+                            className="mt-2 block w-full text-[10px] bg-zinc-800 border-none rounded-lg text-zinc-300 focus:ring-0 cursor-pointer p-1.5"
+                          >
+                            <option value="">-- כללי (ללא סעיף) --</option>
+                            {tech.sections.map(s => (
+                              <option key={s.id} value={s.id}>{s.title}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
                     ) : null;
                   })}
                 </div>
