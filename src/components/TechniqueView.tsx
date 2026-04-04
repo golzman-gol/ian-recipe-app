@@ -16,7 +16,7 @@ interface TechniqueViewProps {
 export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, onSelectRecipe, onTagClick }: TechniqueViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
-  // שינוי יחיד: כל הסעיפים מתחילים סגורים (אובייקט ריק)
+  // כל הסעיפים מתחילים סגורים (אובייקט ריק) כברירת מחדל
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const toggleSection = (id: string) => {
@@ -58,7 +58,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
     ${(technique.sections || []).map((s, idx) => `
       <div class="section">
         <h2 class="section-title">${idx + 1}. ${s.title}</h2>
-        ${(s.image_base_6_4 || (s as any).image_base_64) ? `<img src="${s.image_base_6_4 || (s as any).image_base_64}">` : ''}
+        ${s.image_base64 ? `<img src="${s.image_base64}">` : ''}
         <div class="content">${s.content}</div>
       </div>
     `).join('')}
@@ -76,8 +76,8 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
     URL.revokeObjectURL(url);
   };
 
-  // פתרון להצגת התמונה: בודק את שני שמות השדות האפשריים (Type ישן וחדש)
-  const mainImage = technique.image_base_6_4 || (technique as any).image_base_64;
+  // שימוש בשם השדה האחיד לתמונה הראשית
+  const mainImage = technique.image_base64;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
@@ -135,8 +135,8 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
       {/* Modular Sections */}
       <div className="space-y-6 mb-12">
         {(technique.sections || []).map((section, idx) => {
-          // תמיכה בשני שמות השדות עבור תמונות בסעיפים
-          const sectionImage = section.image_base_6_4 || (section as any).image_base_64;
+          // שימוש בשם השדה האחיד עבור תמונות בסעיפים
+          const sectionImage = section.image_base64;
           
           return (
             <div key={section.id} className={`bg-white border rounded-3xl transition-all duration-300 overflow-hidden print:border-0 print:border-b print:border-zinc-100 print:rounded-none print:shadow-none break-inside-avoid ${expandedSections[section.id] ? 'border-zinc-900 ring-1 ring-zinc-900 shadow-md' : 'border-zinc-200 hover:border-zinc-400'}`}>
@@ -157,7 +157,7 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
               </h2>
 
               <div className={`p-6 pt-0 space-y-6 animate-in fade-in slide-in-from-top-2 ${expandedSections[section.id] ? 'block' : 'hidden print:block'}`}>
-                {/* הצגת התמונה (אם קיימת באחד משני השדות) */}
+                {/* הצגת התמונה מהשדה האחיד */}
                 {sectionImage && (
                   <div className="rounded-2xl overflow-hidden border border-zinc-200 aspect-video mb-4 mt-6 print:rounded-xl">
                     <img src={sectionImage} className="w-full h-full object-cover" />
