@@ -268,12 +268,9 @@ export function Home({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {filteredItems.map(({ type, item }) => {
-            // עדכון לוגיקת displayImage לתמיכה מלאה בשני שמות השדות (גשר)
-            const displayImage = 
-              (item as any).image_base_6_4 || 
-              (item as any).image_base64 || 
-              (type === 'technique' && ((item as Technique).sections?.[0] as any)?.image_base_6_4) ||
-              (type === 'technique' && ((item as Technique).sections?.[0] as any)?.image_base_6_4);
+            // לוגיקה נקייה ואחידה לזיהוי תמונה
+            const displayImage = item.image_base64 || 
+              (type === 'technique' && (item as Technique).sections?.[0]?.image_base64);
 
             return (
               <div
@@ -306,7 +303,7 @@ export function Home({
                   </div>
                   {displayImage && (
                     <div className="w-full aspect-video rounded-xl overflow-hidden mb-3 border border-zinc-200">
-                      <img src={displayImage as string} alt={'name' in item ? item.name : item.title} className="w-full h-full object-cover" />
+                      <img src={displayImage} alt={'name' in item ? item.name : item.title} className="w-full h-full object-cover" />
                     </div>
                   )}
                 </div>
