@@ -22,7 +22,7 @@ export interface TechniqueSection {
   id: string;
   title: string;
   content: string;
-  image_base_64?: string; // תמיכה בתמונה לכל צ'אנק
+  image_base64?: string; // עודכן לשם אחיד: תמיכה בתמונה לכל צ'אנק
   references?: ReferenceLink[]; // שינוי למערך המאפשר הוספת מקורות מידע מרובים לכל צ'אנק
   isExpanded?: boolean; // לצורך ניהול מצב הפתיחה/סגירה בעורך ובתצוגה
 }
@@ -33,7 +33,7 @@ export interface Technique {
   overview: string;
   content: string;
   tags: string[];
-  image_base_64?: string;
+  image_base64?: string; // עודכן לשם אחיד
   reference_videos?: ReferenceLink[];
   sections?: TechniqueSection[]; // הוספת מערך המקטעים החדש
 }
@@ -60,7 +60,7 @@ export interface Recipe {
   culinary_notes?: string;
   original_ingredients?: Ingredient[];
   original_steps?: string[];
-  image_base_64?: string;
+  image_base64?: string; // עודכן לשם אחיד
   // עדכון השדה לתמיכה גם ב-ID פשוט (תאימות לאחור) וגם באובייקט קישור מפורט
   linkedTechniques?: (string | LinkedTechnique)[];
   linkedRecipes?: string[];
