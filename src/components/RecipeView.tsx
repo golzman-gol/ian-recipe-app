@@ -113,8 +113,8 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
 
   if (isCookingMode) return <CookingMode recipe={{ ...recipe, ingredients: scaledIngredients }} onExit={() => setIsCookingMode(false)} />;
 
-  // לוגיקה להחזרת התמונה (תומך בשני שמות השדות)
-  const displayImage = recipe.image_base_6_4 || (recipe as any).image_base64;
+  // לוגיקה להחזרת התמונה - עודכן לאחידות מלאה
+  const displayImage = recipe.image_base64;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
