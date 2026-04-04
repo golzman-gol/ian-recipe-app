@@ -86,13 +86,13 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
     setScaleMultiplier('1');
   };
 
-  // לוגיקה מעודכנת להעלאת תמונה - מבטיחה תאימות ל-Type החדש
+  // לוגיקה מעודכנת להעלאת תמונה - אחידות מלאה ל-image_base64
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setRecipe({ ...recipe, image_base_6_4: reader.result as string });
+        setRecipe({ ...recipe, image_base64: reader.result as string });
       };
       reader.readAsDataURL(file);
     }
@@ -290,8 +290,8 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
 
   const hasOriginal = recipe.original_ingredients || recipe.original_steps;
 
-  // פתרון התצוגה: מחפש את התמונה בשני השמות האפשריים כדי להבטיח שהיא תוצג בעורך
-  const currentImage = recipe.image_base_6_4 || (recipe as any).image_base64;
+  // פתרון האחידות: משתמש אך ורק בשם השדה התקין
+  const currentImage = recipe.image_base64;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
@@ -310,14 +310,14 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
 
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
-        {/* Image Upload - חזרה ללוגיקה הישנה והטובה */}
+        {/* Image Upload - אחידות מלאה ל-image_base64 */}
         <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
           <label className="block text-sm font-medium text-zinc-500 mb-3">תמונת המתכון</label>
           {currentImage ? (
             <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
               <img src={currentImage} alt="Recipe" className="w-full h-full object-cover" />
               <button
-                onClick={() => setRecipe({ ...recipe, image_base_6_4: undefined, image_base64: undefined } as any)}
+                onClick={() => setRecipe({ ...recipe, image_base64: undefined })}
                 className="absolute top-4 left-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 backdrop-blur-sm"
               >
                 <Trash2 className="w-5 h-5" />
@@ -424,7 +424,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                   value={techniqueSearch}
                   onChange={(e) => { setTechniqueSearch(e.target.value); setShowTechniquesDropdown(true); }}
                   onFocus={() => setShowTechniquesDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowTechniquesDropdown(false), 200)}
+                  onBlur={() => setTimeout(() => setShowTagDropdown(false), 200)}
                   className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 bg-zinc-50"
                   placeholder="חפש והוסף טכניקות..."
                 />
