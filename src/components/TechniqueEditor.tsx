@@ -14,7 +14,9 @@ export function TechniqueEditor({ initialTechnique, allTags = [], onSave, onCanc
   const [title, setTitle] = useState(initialTechnique?.title || '');
   const [overview, setOverview] = useState(initialTechnique?.overview || '');
   const [tags, setTags] = useState<string[]>(initialTechnique?.tags || []);
-  const [imageBase64, setImageBase64] = useState<string | undefined>(initialTechnique?.image_base_64);
+  
+  // שימוש בשם השדה האחיד: image_base64
+  const [imageBase64, setImageBase64] = useState<string | undefined>(initialTechnique?.image_base64);
   
   const [sections, setSections] = useState<TechniqueSection[]>(initialTechnique?.sections || [
     { id: '1', title: '', content: '', isExpanded: true, references: [] }
@@ -78,7 +80,7 @@ export function TechniqueEditor({ initialTechnique, allTags = [], onSave, onCanc
       overview: overview.trim(),
       content: '',
       tags,
-      image_base_64: imageBase64,
+      image_base64: imageBase64, // שמירה תחת השם האחיד
       sections: sections
     });
   };
@@ -149,10 +151,10 @@ export function TechniqueEditor({ initialTechnique, allTags = [], onSave, onCanc
                       <div>
                         <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">איור / תמונה</label>
                         <div className="aspect-video relative rounded-xl overflow-hidden border border-zinc-200 bg-zinc-50 flex items-center justify-center cursor-pointer hover:bg-zinc-100 transition-colors" onClick={() => document.getElementById(`file-${section.id}`)?.click()}>
-                          {section.image_base_64 ? (
+                          {section.image_base64 ? (
                             <>
-                              <img src={section.image_base_64} className="w-full h-full object-cover" />
-                              <button onClick={(e) => { e.stopPropagation(); updateSection(section.id, { image_base_64: undefined }); }} className="absolute top-2 left-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                              <img src={section.image_base64} className="w-full h-full object-cover" />
+                              <button onClick={(e) => { e.stopPropagation(); updateSection(section.id, { image_base64: undefined }); }} className="absolute top-2 left-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-red-600 transition-colors"><Trash2 className="w-4 h-4" /></button>
                             </>
                           ) : (
                             <ImageIcon className="w-8 h-8 text-zinc-200" />
@@ -161,7 +163,7 @@ export function TechniqueEditor({ initialTechnique, allTags = [], onSave, onCanc
                             const file = e.target.files?.[0];
                             if (file) {
                               const reader = new FileReader();
-                              reader.onloadend = () => updateSection(section.id, { image_base_64: reader.result as string });
+                              reader.onloadend = () => updateSection(section.id, { image_base64: reader.result as string });
                               reader.readAsDataURL(file);
                             }
                           }} className="hidden" accept="image/*" />
