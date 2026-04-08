@@ -34,7 +34,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
   const [activeTagIndex, setActiveTagIndex] = useState(-1);
   
   const filteredTags = allTags.filter(t => 
-    t.includes(tagInput.toLowerCase()) && !tags.includes(t)
+    t.toLowerCase().includes(tagInput.toLowerCase()) && !tags.includes(t.toLowerCase())
   );
 
   // איפוס אינדקס כשהקלט משתנה
@@ -71,7 +71,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
 
   const addTag = (tag: string) => {
     const newTag = tag.trim().toLowerCase();
-    if (!tags.includes(newTag)) {
+    if (newTag && !tags.includes(newTag)) {
       setTags([...tags, newTag]);
     }
     setTagInput('');
@@ -106,14 +106,14 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveTechIndex(prev => (prev < filteredTechniques.length - 1 ? prev + 1 : prev));
+      setActiveTagIndex(prev => (prev < filteredTechniques.length - 1 ? prev + 1 : prev));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveTechIndex(prev => (prev > 0 ? prev - 1 : prev));
+      setActiveTagIndex(prev => (prev > 0 ? prev - 1 : -1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (activeTechIndex >= 0) {
-        const tech = filteredTechniques[activeTechIndex];
+      if (activeTagIndex >= 0) {
+        const tech = filteredTechniques[activeTagIndex];
         toggleLinkedTechnique(tech.id);
         setTechniqueSearch('');
         setShowTechniquesDropdown(false);
@@ -133,7 +133,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
     const multiplier = parseFloat(scaleMultiplier);
     if (isNaN(multiplier) || multiplier <= 0) return;
 
-    const newIngredients = recipe.ingredients.map(ing => ({
+    const newIngredients = (recipe.ingredients || []).map(ing => ({
       ...ing,
       amount: Number((ing.amount * multiplier).toFixed(2))
     }));
@@ -212,14 +212,14 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
   };
 
   const updateIngredient = (index: number, field: keyof Ingredient, value: string | number) => {
-    const newIngredients = [...recipe.ingredients];
+    const newIngredients = [...(recipe.ingredients || [])];
     newIngredients[index] = { ...newIngredients[index], [field]: value };
     setRecipe({ ...recipe, ingredients: newIngredients });
   };
 
   const moveIngredientUp = (index: number) => {
     if (index === 0) return;
-    const newIngredients = [...recipe.ingredients];
+    const newIngredients = [...(recipe.ingredients || [])];
     const temp = newIngredients[index - 1];
     newIngredients[index - 1] = newIngredients[index];
     newIngredients[index] = temp;
@@ -227,8 +227,8 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
   };
 
   const moveIngredientDown = (index: number) => {
-    if (index === recipe.ingredients.length - 1) return;
-    const newIngredients = [...recipe.ingredients];
+    if (index === (recipe.ingredients?.length || 0) - 1) return;
+    const newIngredients = [...(recipe.ingredients || [])];
     const temp = newIngredients[index + 1];
     newIngredients[index + 1] = newIngredients[index];
     newIngredients[index] = temp;
@@ -238,35 +238,35 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
   const addIngredient = () => {
     setRecipe({
       ...recipe,
-      ingredients: [...recipe.ingredients, { item: '', amount: 1, unit: '' }],
+      ingredients: [...(recipe.ingredients || []), { item: '', amount: 1, unit: '' }],
     });
   };
 
   const removeIngredient = (index: number) => {
-    const newIngredients = [...recipe.ingredients];
+    const newIngredients = [...(recipe.ingredients || [])];
     newIngredients.splice(index, 1);
     setRecipe({ ...recipe, ingredients: newIngredients });
   };
 
   const updateStep = (index: number, value: string) => {
-    const newSteps = [...recipe.steps];
+    const newSteps = [...(recipe.steps || [])];
     newSteps[index] = value;
     setRecipe({ ...recipe, steps: newSteps });
   };
 
   const addStep = () => {
-    setRecipe({ ...recipe, steps: [...recipe.steps, ''] });
+    setRecipe({ ...recipe, steps: [...(recipe.steps || []), ''] });
   };
 
   const insertStep = (index: number) => {
-    const newSteps = [...recipe.steps];
+    const newSteps = [...(recipe.steps || [])];
     newSteps.splice(index, 0, '');
     setRecipe({ ...recipe, steps: newSteps });
   };
 
   const moveStepUp = (index: number) => {
     if (index === 0) return;
-    const newSteps = [...recipe.steps];
+    const newSteps = [...(recipe.steps || [])];
     const temp = newSteps[index - 1];
     newSteps[index - 1] = newSteps[index];
     newSteps[index] = temp;
@@ -274,8 +274,8 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
   };
 
   const moveStepDown = (index: number) => {
-    if (index === recipe.steps.length - 1) return;
-    const newSteps = [...recipe.steps];
+    if (index === (recipe.steps?.length || 0) - 1) return;
+    const newSteps = [...(recipe.steps || [])];
     const temp = newSteps[index + 1];
     newSteps[index + 1] = newSteps[index];
     newSteps[index] = temp;
@@ -283,7 +283,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
   };
 
   const removeStep = (index: number) => {
-    const newSteps = [...recipe.steps];
+    const newSteps = [...(recipe.steps || [])];
     newSteps.splice(index, 1);
     setRecipe({ ...recipe, steps: newSteps });
   };
@@ -359,22 +359,38 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
     }
   };
 
-  const hasOriginal = recipe.original_ingredients || recipe.original_steps;
-  const currentImage = recipe.image_base64;
+  const hasOriginal = recipe?.original_ingredients || recipe?.original_steps;
+  const currentImage = recipe?.image_base64;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
-      <div className="flex items-center gap-4 mb-8">
-        <button
-          onClick={onCancel}
-          className="p-3 -ml-3 rounded-full hover:bg-zinc-100 transition-colors"
-          aria-label="חזרה"
-        >
-          <ArrowLeft className="w-7 h-7 text-zinc-900 rotate-180" />
-        </button>
-        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
-          {isEditMode ? 'עריכת מתכון' : 'בדיקת מתכון'}
-        </h1>
+    <div className="max-w-3xl mx-auto px-4 pb-32 rtl text-right pt-24" dir="rtl">
+      
+      {/* FIXED Header - הממשק שצף למעלה ב-100% מהמקרים */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-zinc-200">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="p-2 -ml-2 rounded-full hover:bg-zinc-100 transition-colors"
+              aria-label="חזרה"
+            >
+              <ArrowLeft className="w-6 h-6 text-zinc-900 rotate-180" />
+            </button>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 truncate max-w-[150px] sm:max-w-none">
+              {isEditMode ? 'עריכת מתכון' : 'בדיקת מתכון'}
+            </h1>
+          </div>
+          
+          <button
+            type="button"
+            onClick={handleSave}
+            className="flex items-center gap-2 px-6 py-2.5 bg-zinc-900 text-white rounded-full font-bold shadow-lg active:scale-95 transition-all hover:bg-zinc-800"
+          >
+            <Save className="w-5 h-5" />
+            <span>שמור</span>
+          </button>
+        </div>
       </div>
 
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -386,6 +402,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
             <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
               <img src={currentImage} alt="Recipe" className="w-full h-full object-cover" />
               <button
+                type="button"
                 onClick={() => setRecipe({ ...recipe, image_base64: undefined })}
                 className="absolute top-4 left-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 backdrop-blur-sm"
               >
@@ -408,6 +425,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
         {isEditMode && hasOriginal && (
           <div className="bg-zinc-100 border border-zinc-200 rounded-3xl overflow-hidden">
             <button
+              type="button"
               onClick={() => setShowOriginal(!showOriginal)}
               className="w-full flex items-center justify-between p-5 text-right font-semibold text-zinc-700 hover:bg-zinc-200 transition-colors"
             >
@@ -449,7 +467,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
             <label className="block text-sm font-medium text-zinc-500 mb-2">שם המתכון</label>
             <input
               type="text"
-              value={recipe.name}
+              value={recipe?.name || ''}
               onChange={(e) => setRecipe({ ...recipe, name: e.target.value })}
               className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 font-medium text-lg bg-zinc-50"
             />
@@ -460,7 +478,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
               <label className="block text-sm font-medium text-zinc-500 mb-2">טכניקות מקושרות</label>
               <div className="relative">
                 <div className="flex flex-wrap gap-3 mb-3">
-                  {(recipe.linkedTechniques || []).map(link => {
+                  {(recipe?.linkedTechniques || []).map(link => {
                     const id = typeof link === 'string' ? link : link.techniqueId;
                     const sectionId = typeof link === 'string' ? undefined : link.sectionId;
                     const tech = techniques.find(t => t.id === id);
@@ -469,7 +487,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                       <div key={id} className="flex flex-col p-3 rounded-2xl bg-zinc-900 text-white min-w-[150px]">
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <span className="text-sm font-bold">{tech.title}</span>
-                          <button onClick={() => toggleLinkedTechnique(id)} className="text-zinc-500 hover:text-white transition-colors">&times;</button>
+                          <button type="button" onClick={() => toggleLinkedTechnique(id)} className="text-zinc-500 hover:text-white transition-colors">&times;</button>
                         </div>
                         
                         {tech.sections && tech.sections.length > 0 && (
@@ -493,22 +511,22 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                   value={techniqueSearch}
                   onChange={(e) => { setTechniqueSearch(e.target.value); setShowTechniquesDropdown(true); }}
                   onFocus={() => setShowTechniquesDropdown(true)}
-                  onBlur={() => setTimeout(() => { setShowTechniquesDropdown(false); setActiveTechIndex(-1); }, 200)}
+                  onBlur={() => setTimeout(() => setShowTechniquesDropdown(false), 200)}
                   onKeyDown={handleTechKeyDown}
                   className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 bg-zinc-50"
-                  placeholder="חפש והוסף טכניקות..."
+                  placeholder="חפש טכניקה (חצים + Enter)"
                 />
                 {showTechniquesDropdown && filteredTechniques.length > 0 && (
                   <div className="absolute z-10 w-full mt-2 bg-white border border-zinc-200 rounded-2xl shadow-lg max-h-60 overflow-y-auto">
                     {filteredTechniques.map((tech, index) => (
-                      <button
+                      <div
                         key={tech.id}
+                        onMouseDown={(e) => { e.preventDefault(); toggleLinkedTechnique(tech.id); setTechniqueSearch(''); setShowTechniquesDropdown(false); }}
                         onMouseEnter={() => setActiveTechIndex(index)}
-                        onClick={() => { toggleLinkedTechnique(tech.id); setTechniqueSearch(''); setShowTechniquesDropdown(false); }}
-                        className={`w-full text-right px-4 py-3 focus:outline-none first:rounded-t-2xl last:rounded-b-2xl transition-colors ${activeTechIndex === index ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}
+                        className={`w-full text-right px-4 py-3 cursor-pointer transition-colors ${activeTechIndex === index ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}
                       >
                         <span className="text-sm font-medium text-zinc-900">{tech.title}</span>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -536,20 +554,20 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
             </div>
             <input
               type="text"
-              value={recipe.servings_base}
+              value={recipe?.servings_base || ''}
               onChange={(e) => setRecipe({ ...recipe, servings_base: e.target.value as any })}
               className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 bg-zinc-50 font-medium"
-              placeholder={yieldType === 'servings' ? "למשל: 4 מנות, סיר בינוני..." : "למשל: 24x32, תבנית קפיצית 26..."}
+              placeholder={yieldType === 'servings' ? "למשל: 4 מנות..." : "למשל: 24x32..."}
             />
           </div>
           
           <div className="relative">
             <label className="block text-sm font-medium text-zinc-500 mb-2">תגיות</label>
             <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map(tag => (
+              {(tags || []).map(tag => (
                 <span key={tag} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-zinc-900 text-white">
                   {tag}
-                  <button onClick={() => removeTag(tag)} className="text-zinc-400 hover:text-white mr-1">&times;</button>
+                  <button type="button" onClick={() => removeTag(tag)} className="text-zinc-400 hover:text-white mr-1">&times;</button>
                 </span>
               ))}
             </div>
@@ -558,22 +576,22 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
               value={tagInput}
               onChange={(e) => { setTagInput(e.target.value); setShowTagDropdown(true); }}
               onFocus={() => setShowTagDropdown(true)}
-              onBlur={() => setTimeout(() => { setShowTagDropdown(false); setActiveTagIndex(-1); }, 200)}
+              onBlur={() => setTimeout(() => setShowTagDropdown(false), 200)}
               onKeyDown={handleTagKeyDown}
               className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 bg-zinc-50"
-              placeholder="הקלד תגית ולחץ Enter..."
+              placeholder="הוסף תגית (חצים + Enter)"
             />
             {showTagDropdown && tagInput && filteredTags.length > 0 && (
               <div className="absolute z-10 w-full mt-2 bg-white border border-zinc-200 rounded-2xl shadow-lg max-h-60 overflow-y-auto">
                 {filteredTags.map((tag, index) => (
-                  <button
+                  <div
                     key={tag}
+                    onMouseDown={(e) => { e.preventDefault(); addTag(tag); }}
                     onMouseEnter={() => setActiveTagIndex(index)}
-                    onClick={() => addTag(tag)}
-                    className={`w-full text-right px-4 py-3 focus:outline-none transition-colors ${activeTagIndex === index ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}
+                    className={`w-full text-right px-4 py-3 cursor-pointer transition-colors ${activeTagIndex === index ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}
                   >
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-800">{tag}</span>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -585,9 +603,9 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
           <label className="block text-lg font-bold text-red-800 mb-2">מידע הכנה קריטי</label>
           <p className="text-sm text-red-700 mb-4">מידע שחייב להופיע לפני תחילת העבודה (למשל: "להתחיל 72 שעות מראש")</p>
           <textarea
-            value={recipe.prep_info || ''}
+            value={recipe?.prep_info || ''}
             onChange={(e) => setRecipe({ ...recipe, prep_info: e.target.value })}
-            className="w-full border border-red-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-red-900 bg-white min-h-[100px] text-red-900 font-medium"
+            className="w-full border border-red-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-red-900 bg-white min-h-[100px] text-red-900 font-medium whitespace-pre-wrap"
             placeholder="למשל: התפחה קרה למשך הלילה..."
           />
         </div>
@@ -597,9 +615,9 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
           <label className="block text-lg font-bold text-amber-900 mb-2">דגשים קולינריים</label>
           <p className="text-sm text-amber-700 mb-4">טיפים נוספים או הסברים מדעיים...</p>
           <textarea
-            value={recipe.culinary_notes || ''}
+            value={recipe?.culinary_notes || ''}
             onChange={(e) => setRecipe({ ...recipe, culinary_notes: e.target.value })}
-            className="w-full border border-amber-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-900 focus:border-amber-900 bg-white min-h-[100px] text-amber-900 font-medium"
+            className="w-full border border-amber-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-900 focus:border-amber-900 bg-white min-h-[100px] text-amber-900 font-medium whitespace-pre-wrap"
             placeholder="למשל: רמת הידרציה 75%..."
           />
         </div>
@@ -609,9 +627,9 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
           <label className="block text-lg font-bold text-blue-800 mb-2">אחסון ותוקף</label>
           <p className="text-sm text-blue-700 mb-4">חיי מדף והוראות אחסון</p>
           <textarea
-            value={recipe.storage_info || ''}
+            value={recipe?.storage_info || ''}
             onChange={(e) => setRecipe({ ...recipe, storage_info: e.target.value })}
-            className="w-full border border-blue-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 bg-white min-h-[100px] text-blue-900 font-medium"
+            className="w-full border border-blue-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 bg-white min-h-[100px] text-blue-900 font-medium whitespace-pre-wrap"
             placeholder="למשל: נשמר 3 ימים במקרר"
           />
         </div>
@@ -626,9 +644,9 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                   type="number" step="0.1" value={scaleMultiplier}
                   onChange={(e) => setScaleMultiplier(e.target.value)}
                   className="w-20 px-3 py-2 rounded-lg bg-white border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 text-sm font-medium"
-                  placeholder="הכפל ב-"
+                  placeholder="הכפל"
                 />
-                <button type="button" onClick={applyScale} className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors">שנה הכל</button>
+                <button type="button" onClick={applyScale} className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors">שנה</button>
               </div>
               <button type="button" onClick={addIngredient} className="flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-zinc-900 bg-zinc-100 px-4 py-2.5 rounded-xl transition-colors">
                 <Plus className="w-4 h-4" /> הוסף
@@ -636,7 +654,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
             </div>
           </div>
           <div className="space-y-3">
-            {recipe.ingredients.map((ing, idx) => (
+            {(recipe?.ingredients || []).map((ing, idx) => (
               <div key={idx} className="flex gap-2 items-center bg-zinc-50/50 p-2 rounded-2xl border border-zinc-100 group">
                 <div className="flex flex-col gap-1 px-1">
                   <button type="button" onClick={() => moveIngredientUp(idx)} disabled={idx === 0} className="p-1 text-zinc-400 hover:text-zinc-900 disabled:opacity-20 transition-colors">
@@ -650,7 +668,6 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                   type="number" step="0.1" value={ing.amount}
                   onChange={(e) => updateIngredient(idx, 'amount', parseFloat(e.target.value) || 0)}
                   className="w-20 border border-zinc-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-zinc-900 outline-none bg-white font-mono text-center"
-                  placeholder="כמות"
                 />
                 <input
                   type="text" value={ing.unit}
@@ -662,7 +679,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                   type="text" value={ing.item}
                   onChange={(e) => updateIngredient(idx, 'item', e.target.value)}
                   className="flex-1 border border-zinc-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-zinc-900 outline-none bg-white font-medium"
-                  placeholder="שם המרכיב"
+                  placeholder="מרכיב"
                 />
                 <button type="button" onClick={() => removeIngredient(idx)} className="p-3 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
                   <Trash2 className="w-5 h-5" />
@@ -681,7 +698,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
             </button>
           </div>
           <div className="space-y-4">
-            {recipe.steps.map((step, idx) => (
+            {(recipe?.steps || []).map((step, idx) => (
               <div key={idx} className="flex flex-col gap-2">
                 {idx > 0 && (
                   <div className="flex justify-center -my-2 relative z-10">
@@ -708,7 +725,6 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                     value={step}
                     onChange={(e) => updateStep(idx, e.target.value)}
                     className="flex-1 border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-zinc-50 min-h-[80px]"
-                    placeholder={`שלב ${idx + 1}...`}
                   />
                   <button type="button" onClick={() => removeStep(idx)} className="p-3 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors mt-1">
                     <Trash2 className="w-5 h-5" />
@@ -728,7 +744,7 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
             </button>
             <input type="file" accept="image/*" multiple ref={processImagesInputRef} onChange={handleProcessImagesUpload} className="hidden" />
           </div>
-          {(recipe.process_images || []).length > 0 ? (
+          {(recipe?.process_images || []).length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {recipe.process_images!.map((img, idx) => {
                 const url = typeof img === 'string' ? img : img.url;
@@ -760,8 +776,8 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
             </button>
           </div>
           <div className="space-y-4">
-            {(recipe.reference_videos || []).map((video, idx) => (
-              <div key={idx} className="flex gap-4 items-start bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
+            {(recipe?.reference_videos || []).map((video, idx) => (
+              <div key={idx} className="flex gap-4 items-start bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
                 {video.thumbnailUrl && (
                   <div className="w-32 flex-shrink-0 rounded-xl overflow-hidden aspect-video bg-zinc-200">
                     <img src={video.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
@@ -769,15 +785,15 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
                 )}
                 <div className="flex-1 space-y-3">
                   <div className="relative">
-                    <input type="text" value={video.url} onChange={(e) => updateReferenceVideo(idx, 'url', e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white pr-10" placeholder="כתובת URL (יוטיוב, בלוג, מאמר...)" />
+                    <input type="text" value={video.url} onChange={(e) => updateReferenceVideo(idx, 'url', e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white pr-10" placeholder="כתובת URL..." />
                     {fetchingVideoIdx === idx && (
                       <div className="absolute left-3 top-2.5">
                         <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
                       </div>
                     )}
                   </div>
-                  <input type="text" value={video.channelName || ''} onChange={(e) => updateReferenceVideo(idx, 'channelName', e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white" placeholder="שם הערוץ (אופציונלי)" />
-                  <input type="text" value={video.note} onChange={(e) => updateReferenceVideo(idx, 'note', e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white" placeholder="תיאור (למשל: מקור עיקרי, טכניקת לישה)" />
+                  <input type="text" value={video.channelName || ''} onChange={(e) => updateReferenceVideo(idx, 'channelName', e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white" placeholder="שם המקור" />
+                  <input type="text" value={video.note} onChange={(e) => updateReferenceVideo(idx, 'note', e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white" placeholder="הערה" />
                 </div>
                 <button type="button" onClick={() => removeReferenceVideo(idx)} className="p-3 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
                   <Trash2 className="w-5 h-5" />
@@ -787,11 +803,11 @@ export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [],
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 pt-4">
-          <button type="button" onClick={onCancel} className="flex-1 py-4 px-4 border border-zinc-200 rounded-2xl shadow-sm text-base font-medium text-zinc-700 bg-white hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all active:scale-[0.98]">ביטול</button>
-          <button type="button" onClick={handleSave} className="flex-1 flex justify-center items-center gap-2 py-4 px-4 border border-transparent rounded-2xl shadow-sm text-base font-medium text-white bg-zinc-900 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all active:scale-[0.98]">
-            <Save className="w-6 h-6" /> שמור מתכון
+        {/* Action Buttons (Bottom) */}
+        <div className="flex gap-4 pt-4 pb-12">
+          <button type="button" onClick={onCancel} className="flex-1 py-4 px-4 border border-zinc-200 rounded-2xl shadow-sm text-base font-medium text-zinc-700 bg-white hover:bg-zinc-50 transition-all active:scale-[0.98]">ביטול</button>
+          <button type="button" onClick={handleSave} className="flex-1 py-4 px-4 border border-transparent rounded-2xl shadow-sm text-base font-medium text-white bg-zinc-900 hover:bg-zinc-800 transition-all active:scale-[0.98]">
+            שמור מתכון
           </button>
         </div>
       </div>
