@@ -15,7 +15,6 @@ export function TechniqueEditor({ initialTechnique, allTags = [], onSave, onCanc
   const [overview, setOverview] = useState(initialTechnique?.overview || '');
   const [tags, setTags] = useState<string[]>(initialTechnique?.tags || []);
   
-  // שימוש בשם השדה האחיד: image_base64
   const [imageBase64, setImageBase64] = useState<string | undefined>(initialTechnique?.image_base64);
   
   const [sections, setSections] = useState<TechniqueSection[]>(initialTechnique?.sections || [
@@ -80,26 +79,41 @@ export function TechniqueEditor({ initialTechnique, allTags = [], onSave, onCanc
       overview: overview.trim(),
       content: '',
       tags,
-      image_base64: imageBase64, // שמירה תחת השם האחיד
+      image_base64: imageBase64,
       sections: sections
     });
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <button onClick={onCancel} className="p-3 -ml-3 rounded-full hover:bg-zinc-100 transition-colors">
-            <ArrowLeft className="w-7 h-7 rotate-180" />
+    <div className="max-w-4xl mx-auto px-4 pb-32 rtl text-right pt-24" dir="rtl">
+      
+      {/* FIXED Header - הסרגל הצף */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-zinc-200 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onCancel}
+              className="p-2 -ml-2 rounded-full hover:bg-zinc-100 transition-colors"
+              aria-label="חזרה"
+            >
+              <ArrowLeft className="w-6 h-6 text-zinc-900 rotate-180" />
+            </button>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-900 truncate max-w-[150px] sm:max-w-none">
+              {initialTechnique ? 'עריכת טכניקה' : 'טכניקה חדשה'}
+            </h1>
+          </div>
+          
+          <button
+            onClick={handleSave}
+            className="flex items-center gap-2 px-6 py-2.5 bg-zinc-900 text-white rounded-full font-bold shadow-lg active:scale-95 transition-all hover:bg-zinc-800"
+          >
+            <Save className="w-5 h-5" />
+            <span>שמור</span>
           </button>
-          <h1 className="text-3xl font-bold">{initialTechnique ? 'עריכת טכניקה' : 'טכניקה חדשה'}</h1>
         </div>
-        <button onClick={handleSave} className="flex items-center gap-2 px-8 py-3 bg-zinc-900 text-white rounded-full font-bold shadow-lg active:scale-95 transition-all hover:bg-zinc-800">
-          <Save className="w-5 h-5" /> שמור
-        </button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm space-y-6">
           <div className="aspect-video relative rounded-2xl overflow-hidden border-2 border-dashed border-zinc-300 bg-zinc-50 flex items-center justify-center cursor-pointer group hover:bg-zinc-100 transition-colors" onClick={() => fileInputRef.current?.click()}>
             {imageBase64 ? (
@@ -194,6 +208,12 @@ export function TechniqueEditor({ initialTechnique, allTags = [], onSave, onCanc
             </div>
           ))}
         </div>
+      </div>
+
+      {/* שמירה תחתונה לגיבוי */}
+      <div className="flex gap-4 pt-12 pb-12">
+        <button type="button" onClick={onCancel} className="flex-1 py-4 text-base font-bold text-zinc-700 bg-white border border-zinc-200 rounded-2xl hover:bg-zinc-50 transition-all">ביטול</button>
+        <button type="button" onClick={handleSave} className="flex-1 py-4 text-base font-bold text-white bg-zinc-900 rounded-2xl shadow-lg hover:bg-zinc-800 transition-all">שמור טכניקה</button>
       </div>
     </div>
   );
