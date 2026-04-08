@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Technique, Recipe } from '../types';
-import { ArrowLeft, Edit2, BookOpen, Trash2, Video, Link as LinkIcon, Download, ChevronDown, ChevronUp, Youtube, ExternalLink, FileText, Clock } from 'lucide-react';
+import { ArrowLeft, Edit2, BookOpen, Trash2, Video, Link as LinkIcon, Download, ChevronDown, ChevronUp, Youtube, ExternalLink, FileText, Clock, ArrowUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface TechniqueViewProps {
@@ -15,15 +15,38 @@ interface TechniqueViewProps {
 
 export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, onSelectRecipe, onTagClick }: TechniqueViewProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   
   // כל הסעיפים מתחילים סגורים (אובייקט ריק) כברירת מחדל
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  // פונקציה חדשה: מוודא שהדף תמיד נפתח הכי למעלה כשנכנסים לטכניקה
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [technique.id]);
+
+  // האזנה לגלילה עבור כפתור "חזרה למעלה"
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 1500) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const toggleSection = (id: string) => {
     setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // תמיכה בחיפוש בתוך מערך שיכול להכיל אובייקטים או מחרוזות
   const associatedRecipes = recipes.filter(r => 
     r.linkedTechniques?.some(link => 
       typeof link === 'string' ? link === technique.id : link.techniqueId === technique.id
@@ -76,11 +99,32 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
     URL.revokeObjectURL(url);
   };
 
-  // שימוש בשם השדה האחיד לתמונה הראשית
   const mainImage = technique.image_base64;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
+      
+      {/* כפתורי ניווט צפים */}
+      <div className="fixed bottom-6 left-6 flex flex-col gap-3 z-50 print:hidden">
+        <button 
+          onClick={onBack}
+          className="p-4 bg-white/80 backdrop-blur-md border border-zinc-200 text-zinc-900 rounded-full shadow-lg hover:bg-white transition-all active:scale-90 group"
+          title="חזרה לתפריט"
+        >
+          <ArrowLeft className="w-6 h-6 rotate-180 group-hover:-translate-x-1 transition-transform" />
+        </button>
+
+        {showScrollTop && (
+          <button 
+            onClick={scrollToTop}
+            className="p-4 bg-zinc-900/90 backdrop-blur-md text-white rounded-full shadow-lg hover:bg-zinc-900 transition-all animate-in fade-in zoom-in duration-300 active:scale-90"
+            title="חזרה למעלה"
+          >
+            <ArrowUp className="w-6 h-6" />
+          </button>
+        )}
+      </div>
+
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 print:hidden">
@@ -112,9 +156,8 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
         </div>
       </div>
 
-      {/* Main Image */}
       {mainImage && (
-        <div className="mb-8 rounded-3xl overflow-hidden border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh] shadow-sm print:relative print:top-0 print:max-h-none print:aspect-auto print:rounded-none print:shadow-none print:border-0 print:mb-12">
+        <div className="mb-8 rounded-3xl overflow-hidden shadow-sm border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh] print:relative print:top-0 print:max-h-none print:aspect-auto print:rounded-none print:shadow-none print:border-0 print:mb-12">
           <img src={mainImage} className="w-full h-full object-cover print:rounded-2xl" />
         </div>
       )}
@@ -132,10 +175,8 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
         )}
       </div>
 
-      {/* Modular Sections */}
       <div className="space-y-6 mb-12">
         {(technique.sections || []).map((section, idx) => {
-          // שימוש בשם השדה האחיד עבור תמונות בסעיפים
           const sectionImage = section.image_base64;
           
           return (
@@ -151,13 +192,11 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
                 {expandedSections[section.id] ? <ChevronUp className="w-5 h-5 text-zinc-400" /> : <ChevronDown className="w-5 h-5 text-zinc-400" />}
               </button>
 
-              {/* Print Title */}
               <h2 className="hidden print:block text-3xl font-bold p-6 pb-4 border-b border-zinc-50">
                 {idx + 1}. {section.title || `חלק ${idx + 1}`}
               </h2>
 
               <div className={`p-6 pt-0 space-y-6 animate-in fade-in slide-in-from-top-2 ${expandedSections[section.id] ? 'block' : 'hidden print:block'}`}>
-                {/* הצגת התמונה מהשדה האחיד */}
                 {sectionImage && (
                   <div className="rounded-2xl overflow-hidden border border-zinc-200 aspect-video mb-4 mt-6 print:rounded-xl">
                     <img src={sectionImage} className="w-full h-full object-cover" />
@@ -198,7 +237,6 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
         })}
       </div>
 
-      {/* Associated Recipes */}
       {associatedRecipes.length > 0 && (
         <div className="mt-16 pt-8 border-t border-zinc-200 print:hidden">
           <h2 className="text-2xl font-bold text-zinc-900 mb-8 text-right">מתכונים מקושרים</h2>
@@ -213,7 +251,6 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
         </div>
       )}
 
-      {/* PDF Footer Credit */}
       <footer className="hidden print:block text-center mt-20 pt-8 border-t border-zinc-100 text-zinc-400 text-sm font-medium">
         נכתב ונערך על ידי יאן גולזמן
       </footer>
@@ -229,62 +266,12 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
           img { max-width: 100% !important; height: auto !important; }
           .hidden.print\\:block { display: block !important; }
         }
-
-        .prose ul, .prose ol {
-          padding-right: 0 !important;
-          margin-top: 0.5rem !important;
-          margin-bottom: 0.5rem !important;
-        }
-
-        .prose li {
-          position: relative !important;
-          margin-bottom: 0.35rem !important;
-          margin-top: 0 !important;
-          display: block !important;
-          text-align: right !important;
-          line-height: 1.6 !important;
-        }
-
-        .prose ul > li {
-          padding-right: 1.5rem !important;
-          list-style: none !important;
-        }
-
-        .prose ul > li::before {
-          content: "•";
-          position: absolute !important;
-          right: 0 !important;
-          top: 0 !important;
-          font-weight: bold;
-          color: #3f3f46;
-          font-size: 1.2rem;
-        }
-
-        .prose ol {
-          list-style-type: decimal !important;
-          padding-right: 2rem !important;
-        }
-
-        .prose ol > li {
-          display: list-item !important;
-          padding-right: 0.5rem !important;
-          list-style-position: outside !important;
-        }
-
-        .prose li > ol, .prose li > ul {
-          display: block !important;
-          margin-top: 0.5rem !important;
-          padding-right: 2rem !important;
-        }
-
-        .prose li p {
-          margin: 0 !important;
-          display: inline !important;
-        }
-
-        .prose p {
-          margin-bottom: 0.75rem !important;
-        }
+        .prose ul, .prose ol { padding-right: 0 !important; margin-top: 0.5rem !important; margin-bottom: 0.5rem !important; }
+        .prose li { position: relative !important; margin-bottom: 0.35rem !important; margin-top: 0 !important; display: block !important; text-align: right !important; line-height: 1.6 !important; }
+        .prose ul > li { padding-right: 1.5rem !important; list-style: none !important; }
+        .prose ul > li::before { content: "•"; position: absolute !important; right: 0 !important; top: 0 !important; font-weight: bold; color: #3f3f46; font-size: 1.2rem; }
+        .prose ol { list-style-type: decimal !important; padding-right: 2rem !important; }
+        .prose ol > li { display: list-item !important; padding-right: 0.5rem !important; list-style-position: outside !important; }
       `}</style>
     </div>
   );
