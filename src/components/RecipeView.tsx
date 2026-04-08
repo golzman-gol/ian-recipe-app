@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Recipe, RecipeNote, Technique, LinkedTechnique } from '../types';
-import { ArrowLeft, Play, Plus, Clock, ChefHat, Trash2, Edit3, Image as ImageIcon, AlertTriangle, Video, BookOpen, ThermometerSnowflake, Link, Download, Check, X, FileText } from 'lucide-react';
+import { ArrowLeft, Play, Plus, Clock, ChefHat, Trash2, Edit3, Image as ImageIcon, AlertTriangle, Video, BookOpen, ThermometerSnowflake, Link, Download, Check, X, FileText, Users, Layout, ArrowUp } from 'lucide-react';
 import { CookingMode } from './CookingMode';
 
 interface RecipeViewProps {
@@ -25,6 +25,32 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
   
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteText, setEditingNoteText] = useState('');
+
+  // ניהול מצב כפתור "חזרה למעלה"
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  // פונקציה חדשה: מוודא שהדף תמיד נפתח הכי למעלה כשנכנסים למתכון
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [recipe.id]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // מופיע לאחר גלילה משמעותית
+      if (window.scrollY > 1500) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const multipliers = [0.5, 1, 2, 3];
   const activeMultiplier = customMultiplier ? parseFloat(customMultiplier) || 1 : multiplier;
@@ -65,6 +91,18 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
 
   const handlePrintPdf = () => window.print();
 
+  const yieldLabel = recipe.yield_type === 'pan' ? 'גודל תבנית' : 'כמות';
+  
+  const displayYield = useMemo(() => {
+    if (!recipe.servings_base) return '';
+    const val = String(recipe.servings_base);
+    const num = parseFloat(val);
+    if (!isNaN(num) && /^\d*\.?\d+$/.test(val) && activeMultiplier !== 1) {
+      return (num * activeMultiplier).toString();
+    }
+    return val;
+  }, [recipe.servings_base, activeMultiplier]);
+
   const handleExportHtml = () => {
     const htmlContent = `
 <!DOCTYPE html>
@@ -89,9 +127,10 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
 <body>
   <div class="container">
     <h1>${recipe.name}</h1>
+    <p><strong>${yieldLabel}:</strong> ${displayYield}</p>
     ${recipe.prep_info ? `<div class="info-box"><h3>מידע הכנה קריטי</h3><p>${recipe.prep_info}</p></div>` : ''}
-    ${recipe.storage_info ? `<div class="blue-box"><h3>אחסון ותוקף</h3><p>${recipe.storage_info}</p></div>` : ''}
     ${recipe.culinary_notes ? `<div class="amber-box"><h3>דגשים קולינריים</h3><p>${recipe.culinary_notes}</p></div>` : ''}
+    ${recipe.storage_info ? `<div class="blue-box"><h3>אחסון ותוקף</h3><p>${recipe.storage_info}</p></div>` : ''}
     <h2>מרכיבים</h2>
     <ul>${scaledIngredients.map(i => `<li><strong>${i.amount.toFixed(2)} ${i.unit}</strong> ${i.item}</li>`).join('')}</ul>
     <h2>הוראות הכנה</h2>
@@ -113,11 +152,34 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
 
   if (isCookingMode) return <CookingMode recipe={{ ...recipe, ingredients: scaledIngredients }} onExit={() => setIsCookingMode(false)} />;
 
-  // לוגיקה להחזרת התמונה - עודכן לאחידות מלאה
   const displayImage = recipe.image_base64;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
+      
+      {/* כפתורי ניווט צפים - Floating Action Buttons */}
+      <div className="fixed bottom-6 left-6 flex flex-col gap-3 z-50 print:hidden">
+        {/* כפתור חזרה צף */}
+        <button 
+          onClick={onBack}
+          className="p-4 bg-white/80 backdrop-blur-md border border-zinc-200 text-zinc-900 rounded-full shadow-lg hover:bg-white transition-all active:scale-90 group"
+          title="חזרה לתפריט"
+        >
+          <ArrowLeft className="w-6 h-6 rotate-180 group-hover:-translate-x-1 transition-transform" />
+        </button>
+
+        {/* כפתור קפוץ למעלה - מופיע רק בגלילה */}
+        {showScrollTop && (
+          <button 
+            onClick={scrollToTop}
+            className="p-4 bg-zinc-900/90 backdrop-blur-md text-white rounded-full shadow-lg hover:bg-zinc-900 transition-all animate-in fade-in zoom-in duration-300 active:scale-90"
+            title="חזרה למעלה"
+          >
+            <ArrowUp className="w-6 h-6" />
+          </button>
+        )}
+      </div>
+
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 print:hidden">
@@ -132,7 +194,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {/* Header - Fixed Alignment for iPhone */}
+      {/* Header */}
       <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-8 print:hidden">
         <div className="flex items-center gap-1 sm:gap-2">
           <button onClick={onBack} className="p-2 sm:p-3 -ml-2 sm:-ml-3 rounded-full hover:bg-zinc-100 transition-colors" title="חזרה">
@@ -145,7 +207,6 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
             <button onClick={handlePrintPdf} className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100" title="PDF / הדפסה"><FileText className="w-5 h-5 sm:w-6 h-6" /></button>
             <button onClick={handleExportHtml} className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100" title="ייצוא HTML"><Download className="w-5 h-5 sm:w-6 h-6" /></button>
             
-            {/* Cooking Mode - Now next to the icons */}
             <button 
               onClick={() => setIsCookingMode(true)} 
               className="flex items-center gap-1 sm:gap-2 bg-zinc-900 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-full hover:bg-zinc-800 transition-colors font-bold text-[10px] sm:text-sm shadow-sm active:scale-[0.98] mr-2 whitespace-nowrap"
@@ -156,7 +217,6 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       </div>
 
-      {/* Image Section - RESTORED */}
       {displayImage && (
         <div className="mb-8 rounded-3xl overflow-hidden shadow-sm border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh]">
           <img src={displayImage} alt={recipe.name} className="w-full h-full object-cover" />
@@ -172,7 +232,6 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
           ))}
         </div>
         
-        {/* Linked Techniques with Deep Linking support */}
         {recipe.linkedTechniques && recipe.linkedTechniques.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mt-4">
             <BookOpen className="w-5 h-5 text-zinc-400" />
@@ -199,7 +258,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         )}
       </div>
 
-      {/* Info Boxes */}
+      {/* Info Boxes - REORDERED (Prep -> Culinary -> Storage) */}
       {recipe.prep_info && (
         <div className="mb-10 bg-red-50 border-2 border-red-200 rounded-3xl p-6 shadow-sm section-to-print">
           <h2 className="text-xl font-bold text-red-800 mb-3 flex items-center gap-2"><AlertTriangle className="w-6 h-6" /> מידע הכנה קריטי</h2>
@@ -207,17 +266,17 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {recipe.storage_info && (
-        <div className="mb-10 bg-blue-50 border border-blue-200 rounded-3xl p-6 shadow-sm section-to-print">
-          <h2 className="text-xl font-bold text-blue-800 mb-3 flex items-center gap-2"><ThermometerSnowflake className="w-6 h-6" /> אחסון ותוקף</h2>
-          <p className="text-blue-900 text-lg leading-relaxed whitespace-pre-wrap font-medium">{recipe.storage_info}</p>
-        </div>
-      )}
-
       {recipe.culinary_notes && (
         <div className="mb-10 bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-sm section-to-print">
           <h2 className="text-xl font-semibold text-amber-900 mb-3">דגשים קולינריים</h2>
           <p className="text-amber-800 leading-relaxed whitespace-pre-wrap text-lg">{recipe.culinary_notes}</p>
+        </div>
+      )}
+
+      {recipe.storage_info && (
+        <div className="mb-10 bg-blue-50 border border-blue-200 rounded-3xl p-6 shadow-sm section-to-print">
+          <h2 className="text-xl font-bold text-blue-800 mb-3 flex items-center gap-2"><ThermometerSnowflake className="w-6 h-6" /> אחסון ותוקף</h2>
+          <p className="text-blue-900 text-lg leading-relaxed whitespace-pre-wrap font-medium">{recipe.storage_info}</p>
         </div>
       )}
 
@@ -234,7 +293,15 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
             <input type="number" step="0.1" placeholder="מותאם" value={customMultiplier} onChange={(e) => setCustomMultiplier(e.target.value)} className="w-20 sm:w-28 px-2 sm:px-4 py-2 rounded-full border border-zinc-200 bg-zinc-50 text-sm sm:text-base font-medium focus:ring-2 focus:ring-zinc-900 outline-none flex-shrink-0" />
           </div>
         </div>
-        <p className="text-base text-zinc-500 mb-6 font-medium text-right">כמות: {recipe.servings_base * activeMultiplier} מנות</p>        
+
+        {/* הצגת כמות/תבנית דינמית */}
+        {recipe.servings_base && (
+          <div className="flex items-center gap-2 text-zinc-500 mb-6 font-bold text-right justify-start">
+             {recipe.yield_type === 'pan' ? <Layout className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+             <span>{yieldLabel}: {displayYield}</span>
+          </div>
+        )}
+
         <ul className="space-y-4">
           {scaledIngredients.map((ing, idx) => (
             <li key={idx} className="flex items-baseline gap-4 py-3 border-b border-zinc-100 last:border-0">
