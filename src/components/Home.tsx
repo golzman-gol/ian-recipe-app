@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Recipe, Technique } from '../types';
-import { Search, Plus, ChefHat, BookOpen, Utensils, Globe, Download, Upload } from 'lucide-react';
+import { Search, Plus, ChefHat, BookOpen, Utensils, Globe, Download, Upload, ArrowUp } from 'lucide-react';
 import { useRef } from 'react';
 
 interface HomeProps {
@@ -32,6 +32,27 @@ export function Home({
   const [showTagDropdown, setShowTagDropdown] = useState(false);
   const [contentTypeFilter, setContentTypeFilter] = useState<'all' | 'recipes' | 'techniques'>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ניהול מצב כפתור "חזרה למעלה"
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // הכפתור יופיע לאחר גלילה של 1500 פיקסלים
+      if (window.scrollY > 800) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleExportData = () => {
     const data = { recipes, techniques };
@@ -116,6 +137,18 @@ export function Home({
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-24 rtl text-right" dir="rtl">
+      
+      {/* כפתור קפוץ למעלה צף בלבד */}
+      {showScrollTop && (
+        <button 
+          onClick={scrollToTop}
+          className="fixed bottom-6 left-6 p-4 bg-zinc-900/90 backdrop-blur-md text-white rounded-full shadow-lg hover:bg-zinc-900 transition-all animate-in fade-in zoom-in duration-300 active:scale-90 z-50"
+          title="חזרה למעלה"
+        >
+          <ArrowUp className="w-6 h-6" />
+        </button>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-3 text-zinc-900">
           <ChefHat className="w-8 h-8" />
@@ -268,7 +301,6 @@ export function Home({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {filteredItems.map(({ type, item }) => {
-            // לוגיקה נקייה ואחידה לזיהוי תמונה
             const displayImage = item.image_base64 || 
               (type === 'technique' && (item as Technique).sections?.[0]?.image_base64);
 
@@ -310,7 +342,12 @@ export function Home({
                 {type === 'recipe' && (
                   <div className="text-sm text-zinc-500 flex justify-between items-center mt-4 pt-4 border-t border-zinc-100">
                     <span>{(item as Recipe).ingredients.length} מצרכים</span>
-                    <span>{(item as Recipe).servings_base} מנות</span>
+                    {/* תיקון לוגי: שימוש ב-item במקום ב-recipe למניעת קריסה */}
+                    <span>
+                        {(item as Recipe).yield_type === 'pan' ? 'תבנית: ' : ''}
+                        {(item as Recipe).servings_base} 
+                        {(item as Recipe).yield_type !== 'pan' ? ' מנות' : ''}
+                    </span>
                   </div>
                 )}
               </div>
