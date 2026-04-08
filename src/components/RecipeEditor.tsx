@@ -1,423 +1,800 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Recipe, RecipeNote, Technique, LinkedTechnique } from '../types';
-import { ArrowLeft, Play, Plus, Clock, ChefHat, Trash2, Edit3, Image as ImageIcon, AlertTriangle, Video, BookOpen, ThermometerSnowflake, Link, Download, Check, X, FileText, Users, Layout, ArrowUp } from 'lucide-react';
-import { CookingMode } from './CookingMode';
+import React, { useState, useRef, useEffect } from 'react';
+import { Recipe, Ingredient, ReferenceLink, Technique, ProcessImage, LinkedTechnique } from '../types';
+import { ArrowLeft, Save, Plus, Trash2, Image as ImageIcon, ChevronDown, ChevronRight, Loader2, ArrowUp, ArrowDown, Layout, Users } from 'lucide-react';
 
-interface RecipeViewProps {
-  recipe: Recipe;
-  recipes: Recipe[];
+interface RecipeEditorProps {
+  initialRecipe: Recipe;
   techniques: Technique[];
-  onBack: () => void;
-  onUpdateRecipe: (updated: Recipe) => void;
-  onDeleteRecipe: (id: string) => void;
-  onEdit: () => void;
-  onSelectTechnique: (id: string, sectionId?: string) => void; // תמיכה בקישור לסעיף
-  onSelectRecipe: (id: string) => void;
-  onTagClick: (tag: string) => void;
+  recipes: Recipe[];
+  allTags?: string[];
+  onSave: (recipe: Recipe) => void;
+  onCancel: () => void;
+  isEditMode: boolean;
 }
 
-export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe, onDeleteRecipe, onEdit, onSelectTechnique, onSelectRecipe, onTagClick }: RecipeViewProps) {
-  const [multiplier, setMultiplier] = useState<number>(1);
-  const [customMultiplier, setCustomMultiplier] = useState<string>('');
-  const [isCookingMode, setIsCookingMode] = useState(false);
-  const [newNote, setNewNote] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [editingNoteText, setEditingNoteText] = useState('');
-
-  // ניהול מצב כפתור "חזרה למעלה"
-  const [showScrollTop, setShowScrollTop] = useState(false);
-
-  // פונקציה חדשה: מוודא שהדף תמיד נפתח הכי למעלה כשנכנסים למתכון
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [recipe.id]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      // מופיע לאחר גלילה משמעותית
-      if (window.scrollY > 1500) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const multipliers = [0.5, 1, 2, 3];
-  const activeMultiplier = customMultiplier ? parseFloat(customMultiplier) || 1 : multiplier;
-
-  const scaledIngredients = useMemo(() => {
-    return recipe.ingredients.map((ing) => ({
-      ...ing,
-      amount: ing.amount * activeMultiplier,
-    }));
-  }, [recipe.ingredients, activeMultiplier]);
-
-  const handleAddNote = () => {
-    if (!newNote.trim()) return;
-    const note: RecipeNote = { id: Date.now().toString(), timestamp: Date.now(), text: newNote.trim() };
-    onUpdateRecipe({ ...recipe, notes: [note, ...recipe.notes] });
-    setNewNote('');
-  };
-
-  const handleSaveEditedNote = () => {
-    if (!editingNoteId) return;
-    const updatedNotes = recipe.notes.map(n => 
-      n.id === editingNoteId ? { ...n, text: editingNoteText.trim() } : n
-    );
-    onUpdateRecipe({ ...recipe, notes: updatedNotes });
-    setEditingNoteId(null);
-  };
-
-  const getYoutubeData = (url?: string) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
-    const match = url.match(regExp);
-    const id = (match && match[2].length === 11) ? match[2] : null;
-    return id ? { 
-      embed: `https://www.youtube.com/embed/${id}`, 
-      direct: `https://www.youtube.com/watch?v=${id}` 
-    } : null;
-  };
-
-  const handlePrintPdf = () => window.print();
-
-  const yieldLabel = recipe.yield_type === 'pan' ? 'גודל תבנית' : 'כמות';
-  
-  const displayYield = useMemo(() => {
-    if (!recipe.servings_base) return '';
-    const val = String(recipe.servings_base);
-    const num = parseFloat(val);
-    if (!isNaN(num) && /^\d*\.?\d+$/.test(val) && activeMultiplier !== 1) {
-      return (num * activeMultiplier).toString();
+export function RecipeEditor({ initialRecipe, techniques, recipes, allTags = [], onSave, onCancel, isEditMode }: RecipeEditorProps) {
+  const [recipe, setRecipe] = useState<Recipe>(() => {
+    if (isEditMode && !initialRecipe.original_ingredients && !initialRecipe.original_steps) {
+      return {
+        ...initialRecipe,
+        original_ingredients: [...initialRecipe.ingredients],
+        original_steps: [...initialRecipe.steps],
+      };
     }
-    return val;
-  }, [recipe.servings_base, activeMultiplier]);
+    return initialRecipe;
+  });
 
-  const handleExportHtml = () => {
-    const htmlContent = `
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <title>${recipe.name}</title>
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #18181b; max-width: 800px; margin: 0 auto; padding: 2rem; background: #fafafa; text-align: right; }
-    .container { background: white; padding: 2.5rem; border-radius: 1.5rem; border: 1px solid #e4e4e7; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-    h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; border-bottom: 2px solid #f4f4f5; padding-bottom: 10px; }
-    .info-box { background: #fef2f2; border: 1px solid #fecaca; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; }
-    .blue-box { background: #eff6ff; border: 1px solid #bfdbfe; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; }
-    .amber-box { background: #fffbeb; border: 1px solid #fef3c7; padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; }
-    h2 { font-size: 1.5rem; font-weight: 700; margin-top: 2rem; border-bottom: 1px solid #f4f4f5; padding-bottom: 8px; }
-    ul, ol { padding-right: 1.5rem; padding-left: 0; }
-    li { margin-bottom: 0.75rem; }
-    .note-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: 1rem; border-radius: 0.75rem; margin-bottom: 1rem; }
-    .process-img { width: 100%; border-radius: 1rem; margin-bottom: 1rem; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>${recipe.name}</h1>
-    <p><strong>${yieldLabel}:</strong> ${displayYield}</p>
-    ${recipe.prep_info ? `<div class="info-box"><h3>מידע הכנה קריטי</h3><p>${recipe.prep_info}</p></div>` : ''}
-    ${recipe.culinary_notes ? `<div class="amber-box"><h3>דגשים קולינריים</h3><p>${recipe.culinary_notes}</p></div>` : ''}
-    ${recipe.storage_info ? `<div class="blue-box"><h3>אחסון ותוקף</h3><p>${recipe.storage_info}</p></div>` : ''}
-    <h2>מרכיבים</h2>
-    <ul>${scaledIngredients.map(i => `<li><strong>${i.amount.toFixed(2)} ${i.unit}</strong> ${i.item}</li>`).join('')}</ul>
-    <h2>הוראות הכנה</h2>
-    <ol>${recipe.steps.map(s => `<li>${s}</li>`).join('')}</ol>
-    ${recipe.process_images && recipe.process_images.length > 0 ? `<h2>תמונות תהליך</h2>${recipe.process_images.map(img => `<div style="margin-bottom: 20px;"><img src="${typeof img === 'string' ? img : img.url}" class="process-img">${typeof img !== 'string' && img.caption ? `<p><em>${img.caption}</em></p>` : ''}</div>`).join('')}` : ''}
-    ${recipe.notes && recipe.notes.length > 0 ? `<h2>NOTES</h2>${recipe.notes.map(n => `<div class="note-item"><small>${new Date(n.timestamp).toLocaleDateString('he-IL')}</small><p>${n.text}</p></div>`).join('')}` : ''}
-  </div>
-</body>
-</html>`;
+  const [yieldType, setYieldType] = useState<'servings' | 'pan'>((recipe as any).yield_type || 'servings');
+  const [tags, setTags] = useState<string[]>(recipe.tags || []);
+  const [tagInput, setTagInput] = useState('');
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
+  
+  // ניהול ניווט מקלדת לטאגים
+  const [activeTagIndex, setActiveTagIndex] = useState(-1);
+  
+  const filteredTags = allTags.filter(t => 
+    t.includes(tagInput.toLowerCase()) && !tags.includes(t)
+  );
 
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${recipe.name.replace(/\s+/g, '_')}_מתכון.html`;
-    a.click();
-    URL.revokeObjectURL(url);
+  // איפוס אינדקס כשהקלט משתנה
+  useEffect(() => {
+    setActiveTagIndex(-1);
+  }, [tagInput]);
+
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+    if (!showTagDropdown || filteredTags.length === 0) {
+      if (e.key === 'Enter' && tagInput.trim()) {
+        e.preventDefault();
+        addTag(tagInput);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveTagIndex(prev => (prev < filteredTags.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveTagIndex(prev => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeTagIndex >= 0) {
+        addTag(filteredTags[activeTagIndex]);
+      } else if (tagInput.trim()) {
+        addTag(tagInput);
+      }
+    } else if (e.key === 'Escape') {
+      setShowTagDropdown(false);
+    }
   };
 
-  if (isCookingMode) return <CookingMode recipe={{ ...recipe, ingredients: scaledIngredients }} onExit={() => setIsCookingMode(false)} />;
+  const addTag = (tag: string) => {
+    const newTag = tag.trim().toLowerCase();
+    if (!tags.includes(newTag)) {
+      setTags([...tags, newTag]);
+    }
+    setTagInput('');
+    setShowTagDropdown(false);
+    setActiveTagIndex(-1);
+  };
 
-  const displayImage = recipe.image_base64;
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(t => t !== tagToRemove));
+  };
+
+  const [showTechniquesDropdown, setShowTechniquesDropdown] = useState(false);
+  const [techniqueSearch, setTechniqueSearch] = useState('');
+  
+  // ניהול ניווט מקלדת לטכניקות
+  const [activeTechIndex, setActiveTechIndex] = useState(-1);
+  
+  const filteredTechniques = techniques.filter(t => 
+    t.title.toLowerCase().includes(techniqueSearch.toLowerCase()) && 
+    !(recipe.linkedTechniques || []).some(link => 
+      typeof link === 'string' ? link === t.id : link.techniqueId === t.id
+    )
+  );
+
+  // איפוס אינדקס כשהחיפוש משתנה
+  useEffect(() => {
+    setActiveTechIndex(-1);
+  }, [techniqueSearch]);
+
+  const handleTechKeyDown = (e: React.KeyboardEvent) => {
+    if (!showTechniquesDropdown || filteredTechniques.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActiveTechIndex(prev => (prev < filteredTechniques.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActiveTechIndex(prev => (prev > 0 ? prev - 1 : prev));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeTechIndex >= 0) {
+        const tech = filteredTechniques[activeTechIndex];
+        toggleLinkedTechnique(tech.id);
+        setTechniqueSearch('');
+        setShowTechniquesDropdown(false);
+      }
+    } else if (e.key === 'Escape') {
+      setShowTechniquesDropdown(false);
+    }
+  };
+  
+  const [scaleMultiplier, setScaleMultiplier] = useState<string>('1');
+  const [fetchingVideoIdx, setFetchingVideoIdx] = useState<number | null>(null);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const processImagesInputRef = useRef<HTMLInputElement>(null);
+
+  const applyScale = () => {
+    const multiplier = parseFloat(scaleMultiplier);
+    if (isNaN(multiplier) || multiplier <= 0) return;
+
+    const newIngredients = recipe.ingredients.map(ing => ({
+      ...ing,
+      amount: Number((ing.amount * multiplier).toFixed(2))
+    }));
+
+    const currentYield = String(recipe.servings_base);
+    const numericYield = parseFloat(currentYield);
+    let newYield: any = recipe.servings_base;
+    
+    if (!isNaN(numericYield) && /^\d*\.?\d+$/.test(currentYield)) {
+      newYield = Math.round(numericYield * multiplier);
+    }
+
+    setRecipe({
+      ...recipe,
+      servings_base: newYield,
+      ingredients: newIngredients
+    });
+    setScaleMultiplier('1');
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setRecipe({ ...recipe, image_base64: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleProcessImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      const readers = files.map(file => {
+        return new Promise<ProcessImage>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve({ url: reader.result as string, caption: '' });
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(readers).then(newImages => {
+        const currentImages = (recipe.process_images || []).map(img => 
+          typeof img === 'string' ? { url: img, caption: '' } : img
+        );
+        setRecipe({ 
+          ...recipe, 
+          process_images: [...currentImages, ...newImages] 
+        });
+      });
+    }
+  };
+
+  const removeProcessImage = (index: number) => {
+    const newImages = [...(recipe.process_images || [])];
+    newImages.splice(index, 1);
+    setRecipe({ ...recipe, process_images: newImages });
+  };
+
+  const updateProcessImageCaption = (index: number, caption: string) => {
+    const newImages = [...(recipe.process_images || [])].map(img => 
+      typeof img === 'string' ? { url: img, caption: '' } : img
+    );
+    newImages[index] = { ...newImages[index], caption };
+    setRecipe({ ...recipe, process_images: newImages });
+  };
+
+  const handleSave = () => {
+    const finalRecipe = { 
+      ...recipe, 
+      tags,
+      yield_type: yieldType
+    };
+    onSave(finalRecipe as Recipe);
+  };
+
+  const updateIngredient = (index: number, field: keyof Ingredient, value: string | number) => {
+    const newIngredients = [...recipe.ingredients];
+    newIngredients[index] = { ...newIngredients[index], [field]: value };
+    setRecipe({ ...recipe, ingredients: newIngredients });
+  };
+
+  const moveIngredientUp = (index: number) => {
+    if (index === 0) return;
+    const newIngredients = [...recipe.ingredients];
+    const temp = newIngredients[index - 1];
+    newIngredients[index - 1] = newIngredients[index];
+    newIngredients[index] = temp;
+    setRecipe({ ...recipe, ingredients: newIngredients });
+  };
+
+  const moveIngredientDown = (index: number) => {
+    if (index === recipe.ingredients.length - 1) return;
+    const newIngredients = [...recipe.ingredients];
+    const temp = newIngredients[index + 1];
+    newIngredients[index + 1] = newIngredients[index];
+    newIngredients[index] = temp;
+    setRecipe({ ...recipe, ingredients: newIngredients });
+  };
+
+  const addIngredient = () => {
+    setRecipe({
+      ...recipe,
+      ingredients: [...recipe.ingredients, { item: '', amount: 1, unit: '' }],
+    });
+  };
+
+  const removeIngredient = (index: number) => {
+    const newIngredients = [...recipe.ingredients];
+    newIngredients.splice(index, 1);
+    setRecipe({ ...recipe, ingredients: newIngredients });
+  };
+
+  const updateStep = (index: number, value: string) => {
+    const newSteps = [...recipe.steps];
+    newSteps[index] = value;
+    setRecipe({ ...recipe, steps: newSteps });
+  };
+
+  const addStep = () => {
+    setRecipe({ ...recipe, steps: [...recipe.steps, ''] });
+  };
+
+  const insertStep = (index: number) => {
+    const newSteps = [...recipe.steps];
+    newSteps.splice(index, 0, '');
+    setRecipe({ ...recipe, steps: newSteps });
+  };
+
+  const moveStepUp = (index: number) => {
+    if (index === 0) return;
+    const newSteps = [...recipe.steps];
+    const temp = newSteps[index - 1];
+    newSteps[index - 1] = newSteps[index];
+    newSteps[index] = temp;
+    setRecipe({ ...recipe, steps: newSteps });
+  };
+
+  const moveStepDown = (index: number) => {
+    if (index === recipe.steps.length - 1) return;
+    const newSteps = [...recipe.steps];
+    const temp = newSteps[index + 1];
+    newSteps[index + 1] = newSteps[index];
+    newSteps[index] = temp;
+    setRecipe({ ...recipe, steps: newSteps });
+  };
+
+  const removeStep = (index: number) => {
+    const newSteps = [...recipe.steps];
+    newSteps.splice(index, 1);
+    setRecipe({ ...recipe, steps: newSteps });
+  };
+
+  const addReferenceVideo = () => {
+    setRecipe({
+      ...recipe,
+      reference_videos: [...(recipe.reference_videos || []), { url: '', note: '', channelName: '' }]
+    });
+  };
+
+  const updateReferenceVideo = async (index: number, field: keyof ReferenceLink, value: string) => {
+    const newVideos = [...(recipe.reference_videos || [])];
+    newVideos[index] = { ...newVideos[index], [field]: value };
+    setRecipe({ ...recipe, reference_videos: newVideos });
+
+    if (field === 'url' && (value.includes('youtube.com') || value.includes('youtu.be') || value.includes('shorts/'))) {
+      setFetchingVideoIdx(index);
+      try {
+        const res = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(value)}`);
+        const data = await res.json();
+        if (data && !data.error) {
+          const updatedVideos = [...newVideos];
+          updatedVideos[index] = {
+            ...updatedVideos[index],
+            thumbnailUrl: data.thumbnail_url,
+            channelName: updatedVideos[index].channelName || data.author_name,
+            note: updatedVideos[index].note || data.title || ''
+          };
+          setRecipe({ ...recipe, reference_videos: updatedVideos });
+        }
+      } catch (e) {
+        console.error("Failed to fetch YouTube metadata", e);
+      } finally {
+        setFetchingVideoIdx(null);
+      }
+    }
+  };
+
+  const removeReferenceVideo = (index: number) => {
+    const newVideos = [...(recipe.reference_videos || [])];
+    newVideos.splice(index, 1);
+    setRecipe({ ...recipe, reference_videos: newVideos });
+  };
+
+  const toggleLinkedTechnique = (techniqueId: string) => {
+    const current = recipe.linkedTechniques || [];
+    const exists = current.some(link => 
+      typeof link === 'string' ? link === techniqueId : link.techniqueId === techniqueId
+    );
+
+    if (exists) {
+      setRecipe({ 
+        ...recipe, 
+        linkedTechniques: current.filter(link => 
+          typeof link === 'string' ? link !== techniqueId : link.techniqueId !== techniqueId
+        ) 
+      });
+    } else {
+      setRecipe({ ...recipe, linkedTechniques: [...current, { techniqueId }] });
+    }
+  };
+
+  const updateLinkedTechniqueSection = (techniqueId: string, sectionId: string | undefined) => {
+    const current = [...(recipe.linkedTechniques || [])];
+    const index = current.findIndex(link => 
+      typeof link === 'string' ? link === techniqueId : link.techniqueId === techniqueId
+    );
+
+    if (index !== -1) {
+      current[index] = { techniqueId, sectionId };
+      setRecipe({ ...recipe, linkedTechniques: current });
+    }
+  };
+
+  const hasOriginal = recipe.original_ingredients || recipe.original_steps;
+  const currentImage = recipe.image_base64;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 pb-32 rtl text-right" dir="rtl">
-      
-      {/* כפתורי ניווט צפים - Floating Action Buttons */}
-      <div className="fixed bottom-6 left-6 flex flex-col gap-3 z-50 print:hidden">
-        {/* כפתור חזרה צף */}
-        <button 
-          onClick={onBack}
-          className="p-4 bg-white/80 backdrop-blur-md border border-zinc-200 text-zinc-900 rounded-full shadow-lg hover:bg-white transition-all active:scale-90 group"
-          title="חזרה לתפריט"
+      <div className="flex items-center gap-4 mb-8">
+        <button
+          onClick={onCancel}
+          className="p-3 -ml-3 rounded-full hover:bg-zinc-100 transition-colors"
+          aria-label="חזרה"
         >
-          <ArrowLeft className="w-6 h-6 rotate-180 group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft className="w-7 h-7 text-zinc-900 rotate-180" />
         </button>
-
-        {/* כפתור קפוץ למעלה - מופיע רק בגלילה */}
-        {showScrollTop && (
-          <button 
-            onClick={scrollToTop}
-            className="p-4 bg-zinc-900/90 backdrop-blur-md text-white rounded-full shadow-lg hover:bg-zinc-900 transition-all animate-in fade-in zoom-in duration-300 active:scale-90"
-            title="חזרה למעלה"
-          >
-            <ArrowUp className="w-6 h-6" />
-          </button>
-        )}
+        <h1 className="text-3xl font-bold tracking-tight text-zinc-900">
+          {isEditMode ? 'עריכת מתכון' : 'בדיקת מתכון'}
+        </h1>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 print:hidden">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-xl">
-            <h3 className="text-xl font-bold mb-2">למחוק מתכון?</h3>
-            <p className="text-zinc-600 mb-6 text-sm">האם אתה בטוח שברצונך למחוק את "{recipe.name}"? פעולה זו אינה ניתנת לביטול.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 px-4 py-3 rounded-xl bg-zinc-100 text-zinc-700 font-medium">ביטול</button>
-              <button onClick={() => { setShowDeleteConfirm(false); onDeleteRecipe(recipe.id); }} className="flex-1 px-4 py-3 rounded-xl bg-red-600 text-white font-medium">מחיקה</button>
+      <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        
+        {/* Image Upload */}
+        <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
+          <label className="block text-sm font-medium text-zinc-500 mb-3">תמונת המתכון</label>
+          {currentImage ? (
+            <div className="relative rounded-2xl overflow-hidden aspect-video mb-4">
+              <img src={currentImage} alt="Recipe" className="w-full h-full object-cover" />
+              <button
+                onClick={() => setRecipe({ ...recipe, image_base64: undefined })}
+                className="absolute top-4 left-4 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 backdrop-blur-sm"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-zinc-300 rounded-2xl p-8 flex flex-col items-center justify-center text-zinc-500 hover:bg-zinc-50 hover:border-zinc-400 cursor-pointer transition-colors aspect-video"
+            >
+              <ImageIcon className="w-10 h-10 mb-3 text-zinc-400" />
+              <span className="font-medium">לחץ להעלאת תמונה</span>
+            </div>
+          )}
+          <input type="file" accept="image/*" ref={fileInputRef} onChange={handleImageUpload} className="hidden" />
+        </div>
+
+        {/* Original Source (Archive) */}
+        {isEditMode && hasOriginal && (
+          <div className="bg-zinc-100 border border-zinc-200 rounded-3xl overflow-hidden">
+            <button
+              onClick={() => setShowOriginal(!showOriginal)}
+              className="w-full flex items-center justify-between p-5 text-right font-semibold text-zinc-700 hover:bg-zinc-200 transition-colors"
+            >
+              <span>מקור (ארכיון)</span>
+              {showOriginal ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5 rotate-180" />}
+            </button>
+            {showOriginal && (
+              <div className="p-5 pt-0 border-t border-zinc-200/50">
+                <div className="mb-6 mt-4">
+                  <h4 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-3">מרכיבים מקוריים</h4>
+                  <ul className="space-y-2">
+                    {recipe.original_ingredients?.map((ing, idx) => (
+                      <li key={idx} className="flex gap-3 text-sm text-zinc-600">
+                        <span className="font-mono w-12 text-left">{ing.amount}</span>
+                        <span className="w-16">{ing.unit}</span>
+                        <span>{ing.item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-zinc-500 uppercase tracking-wider mb-3">שלבים מקוריים</h4>
+                  <ol className="list-decimal list-inside space-y-2">
+                    {recipe.original_steps?.map((step, idx) => (
+                      <li key={idx} className="text-sm text-zinc-600 pr-2">
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Basic Info */}
+        <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-zinc-500 mb-2">שם המתכון</label>
+            <input
+              type="text"
+              value={recipe.name}
+              onChange={(e) => setRecipe({ ...recipe, name: e.target.value })}
+              className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 font-medium text-lg bg-zinc-50"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-zinc-500 mb-2">טכניקות מקושרות</label>
+              <div className="relative">
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {(recipe.linkedTechniques || []).map(link => {
+                    const id = typeof link === 'string' ? link : link.techniqueId;
+                    const sectionId = typeof link === 'string' ? undefined : link.sectionId;
+                    const tech = techniques.find(t => t.id === id);
+                    
+                    return tech ? (
+                      <div key={id} className="flex flex-col p-3 rounded-2xl bg-zinc-900 text-white min-w-[150px]">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm font-bold">{tech.title}</span>
+                          <button onClick={() => toggleLinkedTechnique(id)} className="text-zinc-500 hover:text-white transition-colors">&times;</button>
+                        </div>
+                        
+                        {tech.sections && tech.sections.length > 0 && (
+                          <select
+                            value={sectionId || ''}
+                            onChange={(e) => updateLinkedTechniqueSection(id, e.target.value || undefined)}
+                            className="mt-2 block w-full text-[10px] bg-zinc-800 border-none rounded-lg text-zinc-300 focus:ring-0 cursor-pointer p-1.5"
+                          >
+                            <option value="">-- כללי (ללא סעיף) --</option>
+                            {tech.sections.map(s => (
+                              <option key={s.id} value={s.id}>{s.title}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+                <input
+                  type="text"
+                  value={techniqueSearch}
+                  onChange={(e) => { setTechniqueSearch(e.target.value); setShowTechniquesDropdown(true); }}
+                  onFocus={() => setShowTechniquesDropdown(true)}
+                  onBlur={() => setTimeout(() => { setShowTechniquesDropdown(false); setActiveTechIndex(-1); }, 200)}
+                  onKeyDown={handleTechKeyDown}
+                  className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 bg-zinc-50"
+                  placeholder="חפש והוסף טכניקות..."
+                />
+                {showTechniquesDropdown && filteredTechniques.length > 0 && (
+                  <div className="absolute z-10 w-full mt-2 bg-white border border-zinc-200 rounded-2xl shadow-lg max-h-60 overflow-y-auto">
+                    {filteredTechniques.map((tech, index) => (
+                      <button
+                        key={tech.id}
+                        onMouseEnter={() => setActiveTechIndex(index)}
+                        onClick={() => { toggleLinkedTechnique(tech.id); setTechniqueSearch(''); setShowTechniquesDropdown(false); }}
+                        className={`w-full text-right px-4 py-3 focus:outline-none first:rounded-t-2xl last:rounded-b-2xl transition-colors ${activeTechIndex === index ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}
+                      >
+                        <span className="text-sm font-medium text-zinc-900">{tech.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-8 print:hidden">
-        <div className="flex items-center gap-1 sm:gap-2">
-          <button onClick={onBack} className="p-2 sm:p-3 -ml-2 sm:-ml-3 rounded-full hover:bg-zinc-100 transition-colors" title="חזרה">
-            <ArrowLeft className="w-6 h-6 sm:w-7 h-7 text-zinc-900 rotate-180" />
-          </button>
           
-          <div className="flex items-center gap-0.5 sm:gap-1 border-r border-zinc-200 pr-1 sm:pr-2">
-            <button onClick={() => setShowDeleteConfirm(true)} className="p-2 rounded-full text-red-600 hover:bg-red-50 transition-colors" title="מחיקה"><Trash2 className="w-5 h-5 sm:w-6 h-6" /></button>
-            <button onClick={onEdit} className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100 transition-colors" title="עריכה"><Edit3 className="w-5 h-5 sm:w-6 h-6" /></button>
-            <button onClick={handlePrintPdf} className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100" title="PDF / הדפסה"><FileText className="w-5 h-5 sm:w-6 h-6" /></button>
-            <button onClick={handleExportHtml} className="p-2 rounded-full text-zinc-600 hover:bg-zinc-100" title="ייצוא HTML"><Download className="w-5 h-5 sm:w-6 h-6" /></button>
-            
-            <button 
-              onClick={() => setIsCookingMode(true)} 
-              className="flex items-center gap-1 sm:gap-2 bg-zinc-900 text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-full hover:bg-zinc-800 transition-colors font-bold text-[10px] sm:text-sm shadow-sm active:scale-[0.98] mr-2 whitespace-nowrap"
-            >
-              <ChefHat className="w-4 h-4 sm:w-5 h-5" /> מצב בישול
-            </button>
+          <div className="space-y-4">
+            <label className="block text-sm font-medium text-zinc-500 mb-2">כמות / גודל תבנית</label>
+            <div className="flex p-1 bg-zinc-100 rounded-2xl w-fit">
+              <button
+                type="button"
+                onClick={() => setYieldType('servings')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${yieldType === 'servings' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}
+              >
+                <Users className="w-4 h-4" /> מנות
+              </button>
+              <button
+                type="button"
+                onClick={() => setYieldType('pan')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${yieldType === 'pan' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'}`}
+              >
+                <Layout className="w-4 h-4" /> גודל תבנית
+              </button>
+            </div>
+            <input
+              type="text"
+              value={recipe.servings_base}
+              onChange={(e) => setRecipe({ ...recipe, servings_base: e.target.value as any })}
+              className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 bg-zinc-50 font-medium"
+              placeholder={yieldType === 'servings' ? "למשל: 4 מנות, סיר בינוני..." : "למשל: 24x32, תבנית קפיצית 26..."}
+            />
           </div>
-        </div>
-      </div>
-
-      {displayImage && (
-        <div className="mb-8 rounded-3xl overflow-hidden shadow-sm border border-zinc-200 aspect-video sticky top-4 z-10 max-h-[40vh]">
-          <img src={displayImage} alt={recipe.name} className="w-full h-full object-cover" />
-        </div>
-      )}
-
-      {/* Title & Tags */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight text-zinc-900 mb-4">{recipe.name}</h1>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {recipe.tags.map((tag) => (
-            <button key={tag} onClick={() => onTagClick(tag)} className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-zinc-100 text-zinc-800 hover:bg-zinc-200">{tag}</button>
-          ))}
-        </div>
-        
-        {recipe.linkedTechniques && recipe.linkedTechniques.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mt-4">
-            <BookOpen className="w-5 h-5 text-zinc-400" />
-            {recipe.linkedTechniques.map((link, idx) => {
-              const techId = typeof link === 'string' ? link : link.techniqueId;
-              const sectionId = typeof link === 'string' ? undefined : link.sectionId;
-              const tech = techniques.find(t => t.id === techId);
-              
-              if (!tech) return null;
-              const section = sectionId ? tech.sections?.find(s => s.id === sectionId) : null;
-
-              return (
-                <button 
-                  key={idx} 
-                  onClick={() => onSelectTechnique(techId, sectionId)} 
-                  className="bg-zinc-100 border border-zinc-200 text-sm font-medium text-zinc-700 rounded-xl px-3 py-1.5 hover:bg-zinc-200 flex flex-col items-start"
-                >
-                  <span>{tech.title}</span>
-                  {section && <span className="text-[10px] text-zinc-400 font-bold">({section.title})</span>}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Info Boxes - REORDERED (Prep -> Culinary -> Storage) */}
-      {recipe.prep_info && (
-        <div className="mb-10 bg-red-50 border-2 border-red-200 rounded-3xl p-6 shadow-sm section-to-print">
-          <h2 className="text-xl font-bold text-red-800 mb-3 flex items-center gap-2"><AlertTriangle className="w-6 h-6" /> מידע הכנה קריטי</h2>
-          <p className="text-red-900 text-lg leading-relaxed whitespace-pre-wrap font-medium">{recipe.prep_info}</p>
-        </div>
-      )}
-
-      {recipe.culinary_notes && (
-        <div className="mb-10 bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-sm section-to-print">
-          <h2 className="text-xl font-semibold text-amber-900 mb-3">דגשים קולינריים</h2>
-          <p className="text-amber-800 leading-relaxed whitespace-pre-wrap text-lg">{recipe.culinary_notes}</p>
-        </div>
-      )}
-
-      {recipe.storage_info && (
-        <div className="mb-10 bg-blue-50 border border-blue-200 rounded-3xl p-6 shadow-sm section-to-print">
-          <h2 className="text-xl font-bold text-blue-800 mb-3 flex items-center gap-2"><ThermometerSnowflake className="w-6 h-6" /> אחסון ותוקף</h2>
-          <p className="text-blue-900 text-lg leading-relaxed whitespace-pre-wrap font-medium">{recipe.storage_info}</p>
-        </div>
-      )}
-
-      {/* Ingredients */}
-      <div className="bg-white rounded-3xl p-6 mb-10 border border-zinc-200 shadow-sm break-inside-avoid">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 print:hidden">
-          <h2 className="text-2xl font-bold text-zinc-900">מרכיבים</h2>
-          <div className="flex items-center gap-2 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0">
-            <div className="flex items-center gap-1 bg-zinc-100 rounded-full p-1 border flex-shrink-0">
-              {multipliers.map((m) => (
-                <button key={m} onClick={() => { setMultiplier(m); setCustomMultiplier(''); }} className={`px-2.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-bold ${activeMultiplier === m && !customMultiplier ? 'bg-zinc-900 text-white shadow-sm' : 'text-zinc-600'}`}>{m}x</button>
+          
+          <div className="relative">
+            <label className="block text-sm font-medium text-zinc-500 mb-2">תגיות</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {tags.map(tag => (
+                <span key={tag} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium bg-zinc-900 text-white">
+                  {tag}
+                  <button onClick={() => removeTag(tag)} className="text-zinc-400 hover:text-white mr-1">&times;</button>
+                </span>
               ))}
             </div>
-            <input type="number" step="0.1" placeholder="מותאם" value={customMultiplier} onChange={(e) => setCustomMultiplier(e.target.value)} className="w-20 sm:w-28 px-2 sm:px-4 py-2 rounded-full border border-zinc-200 bg-zinc-50 text-sm sm:text-base font-medium focus:ring-2 focus:ring-zinc-900 outline-none flex-shrink-0" />
-          </div>
-        </div>
-
-        {/* הצגת כמות/תבנית דינמית */}
-        {recipe.servings_base && (
-          <div className="flex items-center gap-2 text-zinc-500 mb-6 font-bold text-right justify-start">
-             {recipe.yield_type === 'pan' ? <Layout className="w-5 h-5" /> : <Users className="w-5 h-5" />}
-             <span>{yieldLabel}: {displayYield}</span>
-          </div>
-        )}
-
-        <ul className="space-y-4">
-          {scaledIngredients.map((ing, idx) => (
-            <li key={idx} className="flex items-baseline gap-4 py-3 border-b border-zinc-100 last:border-0">
-              <span className="font-mono font-bold text-zinc-900 w-20 text-right text-lg">{ing.amount.toFixed(ing.amount % 1 === 0 ? 0 : 2)}</span>
-              <span className="text-zinc-500 w-20 text-base font-medium">{ing.unit}</span>
-              <span className="text-zinc-800 font-medium text-lg flex-1">{ing.item}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Instructions */}
-      <div className="mb-12 bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm break-inside-avoid">
-        <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-8">הוראות הכנה</h2>
-        <div className="space-y-8">
-          {recipe.steps.map((step, idx) => (
-            <div key={idx} className="flex flex-row gap-5 items-start">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-100 text-zinc-900 flex items-center justify-center font-bold text-lg border">
-                {idx + 1}
+            <input
+              type="text"
+              value={tagInput}
+              onChange={(e) => { setTagInput(e.target.value); setShowTagDropdown(true); }}
+              onFocus={() => setShowTagDropdown(true)}
+              onBlur={() => setTimeout(() => { setShowTagDropdown(false); setActiveTagIndex(-1); }, 200)}
+              onKeyDown={handleTagKeyDown}
+              className="w-full border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 bg-zinc-50"
+              placeholder="הקלד תגית ולחץ Enter..."
+            />
+            {showTagDropdown && tagInput && filteredTags.length > 0 && (
+              <div className="absolute z-10 w-full mt-2 bg-white border border-zinc-200 rounded-2xl shadow-lg max-h-60 overflow-y-auto">
+                {filteredTags.map((tag, index) => (
+                  <button
+                    key={tag}
+                    onMouseEnter={() => setActiveTagIndex(index)}
+                    onClick={() => addTag(tag)}
+                    className={`w-full text-right px-4 py-3 focus:outline-none transition-colors ${activeTagIndex === index ? 'bg-zinc-100' : 'hover:bg-zinc-50'}`}
+                  >
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 text-zinc-800">{tag}</span>
+                  </button>
+                ))}
               </div>
-              <p className="text-zinc-800 leading-relaxed pt-1 text-lg flex-1 text-right">{step}</p>
-            </div>
-          ))}
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Process Images */}
-      {recipe.process_images && recipe.process_images.length > 0 && (
-        <div className="mb-12 bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm">
-          <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-6">תמונות תהליך</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {recipe.process_images.map((img, idx) => (
-              <div key={idx} className="flex flex-col gap-3">
-                <div className="aspect-video rounded-2xl overflow-hidden border border-zinc-200"><img src={typeof img === 'string' ? img : img.url} className="w-full h-full object-cover" /></div>
-                {typeof img !== 'string' && img.caption && <p className="text-zinc-600 font-medium text-sm px-1">{img.caption}</p>}
+        {/* מידע הכנה קריטי - (אדום) */}
+        <div className="bg-red-50 border border-red-200 rounded-3xl p-6 shadow-sm">
+          <label className="block text-lg font-bold text-red-800 mb-2">מידע הכנה קריטי</label>
+          <p className="text-sm text-red-700 mb-4">מידע שחייב להופיע לפני תחילת העבודה (למשל: "להתחיל 72 שעות מראש")</p>
+          <textarea
+            value={recipe.prep_info || ''}
+            onChange={(e) => setRecipe({ ...recipe, prep_info: e.target.value })}
+            className="w-full border border-red-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-red-900 bg-white min-h-[100px] text-red-900 font-medium"
+            placeholder="למשל: התפחה קרה למשך הלילה..."
+          />
+        </div>
+
+        {/* דגשים קולינריים - (כתום) */}
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-sm">
+          <label className="block text-lg font-bold text-amber-900 mb-2">דגשים קולינריים</label>
+          <p className="text-sm text-amber-700 mb-4">טיפים נוספים או הסברים מדעיים...</p>
+          <textarea
+            value={recipe.culinary_notes || ''}
+            onChange={(e) => setRecipe({ ...recipe, culinary_notes: e.target.value })}
+            className="w-full border border-amber-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-900 focus:border-amber-900 bg-white min-h-[100px] text-amber-900 font-medium"
+            placeholder="למשל: רמת הידרציה 75%..."
+          />
+        </div>
+
+        {/* אחסון ותוקף - (כחול) */}
+        <div className="bg-blue-50 border border-blue-200 rounded-3xl p-6 shadow-sm">
+          <label className="block text-lg font-bold text-blue-800 mb-2">אחסון ותוקף</label>
+          <p className="text-sm text-blue-700 mb-4">חיי מדף והוראות אחסון</p>
+          <textarea
+            value={recipe.storage_info || ''}
+            onChange={(e) => setRecipe({ ...recipe, storage_info: e.target.value })}
+            className="w-full border border-blue-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-blue-900 bg-white min-h-[100px] text-blue-900 font-medium"
+            placeholder="למשל: נשמר 3 ימים במקרר"
+          />
+        </div>
+
+        {/* Ingredients */}
+        <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <label className="block text-lg font-semibold text-zinc-900">מרכיבים</label>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-xl p-1">
+                <input
+                  type="number" step="0.1" value={scaleMultiplier}
+                  onChange={(e) => setScaleMultiplier(e.target.value)}
+                  className="w-20 px-3 py-2 rounded-lg bg-white border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 text-sm font-medium"
+                  placeholder="הכפל ב-"
+                />
+                <button type="button" onClick={applyScale} className="px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm font-medium hover:bg-zinc-800 transition-colors">שנה הכל</button>
+              </div>
+              <button type="button" onClick={addIngredient} className="flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-zinc-900 bg-zinc-100 px-4 py-2.5 rounded-xl transition-colors">
+                <Plus className="w-4 h-4" /> הוסף
+              </button>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {recipe.ingredients.map((ing, idx) => (
+              <div key={idx} className="flex gap-2 items-center bg-zinc-50/50 p-2 rounded-2xl border border-zinc-100 group">
+                <div className="flex flex-col gap-1 px-1">
+                  <button type="button" onClick={() => moveIngredientUp(idx)} disabled={idx === 0} className="p-1 text-zinc-400 hover:text-zinc-900 disabled:opacity-20 transition-colors">
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button type="button" onClick={() => moveIngredientDown(idx)} disabled={idx === recipe.ingredients.length - 1} className="p-1 text-zinc-400 hover:text-zinc-900 disabled:opacity-20 transition-colors">
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                </div>
+                <input
+                  type="number" step="0.1" value={ing.amount}
+                  onChange={(e) => updateIngredient(idx, 'amount', parseFloat(e.target.value) || 0)}
+                  className="w-20 border border-zinc-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-zinc-900 outline-none bg-white font-mono text-center"
+                  placeholder="כמות"
+                />
+                <input
+                  type="text" value={ing.unit}
+                  onChange={(e) => updateIngredient(idx, 'unit', e.target.value)}
+                  className="w-24 border border-zinc-200 rounded-xl px-2 py-3 focus:ring-2 focus:ring-zinc-900 outline-none bg-white"
+                  placeholder="יחידה"
+                />
+                <input
+                  type="text" value={ing.item}
+                  onChange={(e) => updateIngredient(idx, 'item', e.target.value)}
+                  className="flex-1 border border-zinc-200 rounded-xl px-3 py-3 focus:ring-2 focus:ring-zinc-900 outline-none bg-white font-medium"
+                  placeholder="שם המרכיב"
+                />
+                <button type="button" onClick={() => removeIngredient(idx)} className="p-3 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                  <Trash2 className="w-5 h-5" />
+                </button>
               </div>
             ))}
           </div>
         </div>
-      )}
 
-      {/* REFERENCES */}
-      {recipe.reference_videos && recipe.reference_videos.length > 0 && (
-        <div className="border-t border-zinc-200 pt-10 mb-10 space-y-6 print:hidden">
-          <h2 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><Video className="w-6 h-6" /> REFERENCES</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {recipe.reference_videos.map((video, idx) => {
-              const yt = getYoutubeData(video.url);
-              return (
-                <div key={idx} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
-                  {yt ? (
-                    <div className="aspect-video w-full">
-                      <iframe width="100%" height="100%" src={yt.embed} frameBorder="0" allowFullScreen></iframe>
-                    </div>
-                  ) : (
-                    <a href={video.url} target="_blank" rel="noopener noreferrer" className="aspect-video w-full bg-zinc-100 flex items-center justify-center hover:bg-zinc-200 transition-colors">
-                      <Link className="text-zinc-400 w-8 h-8" />
-                    </a>
-                  )}
-                  <div className="p-3 bg-zinc-50 flex-1 flex flex-col">
-                    {yt ? (
-                      <a href={yt.direct} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-zinc-900 bg-white border border-zinc-200 px-2 py-1.5 rounded block text-center mb-2 uppercase hover:bg-zinc-50 transition-colors">Open in YouTube</a>
-                    ) : (
-                      <a href={video.url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-zinc-900 bg-white border border-zinc-200 px-2 py-1.5 rounded block text-center mb-2 uppercase hover:bg-zinc-50 transition-colors">Open Source Link</a>
-                    )}
-                    <p className="text-xs text-zinc-600 line-clamp-2">{video.note}</p>
+        {/* Steps */}
+        <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-lg font-semibold text-zinc-900">שלבי הכנה</label>
+            <button type="button" onClick={addStep} className="flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-zinc-900 bg-zinc-100 px-3 py-1.5 rounded-full">
+              <Plus className="w-4 h-4" /> הוסף
+            </button>
+          </div>
+          <div className="space-y-4">
+            {recipe.steps.map((step, idx) => (
+              <div key={idx} className="flex flex-col gap-2">
+                {idx > 0 && (
+                  <div className="flex justify-center -my-2 relative z-10">
+                    <button type="button" onClick={() => insertStep(idx)} className="p-1 bg-white border border-zinc-200 rounded-full text-zinc-400 hover:text-zinc-900 hover:border-zinc-400 shadow-sm transition-colors" title="הוסף שלב כאן">
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
+                )}
+                <div className="flex gap-3 items-start">
+                  <div className="flex flex-col items-center gap-1 mt-1">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-bold text-sm">
+                      {idx + 1}
+                    </div>
+                    <div className="flex flex-col gap-1 mt-1">
+                      <button type="button" onClick={() => moveStepUp(idx)} disabled={idx === 0} className="p-1 text-zinc-400 hover:text-zinc-900 disabled:opacity-30 transition-colors">
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <button type="button" onClick={() => moveStepDown(idx)} disabled={idx === recipe.steps.length - 1} className="p-1 text-zinc-400 hover:text-zinc-900 disabled:opacity-30 transition-colors">
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={step}
+                    onChange={(e) => updateStep(idx, e.target.value)}
+                    className="flex-1 border border-zinc-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-zinc-50 min-h-[80px]"
+                    placeholder={`שלב ${idx + 1}...`}
+                  />
+                  <button type="button" onClick={() => removeStep(idx)} className="p-3 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors mt-1">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
-      )}
 
-      {/* NOTES */}
-      <div className="border-t border-zinc-200 pt-10 print:block">
-        <h2 className="text-2xl font-bold tracking-tight text-zinc-900 mb-6">NOTES</h2>
-        <div className="flex flex-col sm:flex-row gap-3 mb-8 print:hidden">
-          <input type="text" value={newNote} onChange={(e) => setNewNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddNote()} placeholder="הוסף תצפית חדשה..." className="flex-1 border border-zinc-200 rounded-2xl px-5 py-4 focus:ring-2 focus:ring-zinc-900 bg-zinc-50 text-lg outline-none" />
-          <button onClick={handleAddNote} disabled={!newNote.trim()} className="bg-zinc-900 text-white px-8 py-4 rounded-2xl font-medium shadow-sm disabled:opacity-50">הוסף הערה</button>
-        </div>
-        <div className="space-y-4">
-          {recipe.notes.map((note) => (
-            <div key={note.id} className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm relative group">
-              <div className="flex items-center gap-2 text-sm text-zinc-500 mb-3 font-bold uppercase tracking-wider"><Clock className="w-4 h-4" /> {new Date(note.timestamp).toLocaleDateString('he-IL')}</div>
-              {editingNoteId === note.id ? (
-                <div className="space-y-3">
-                  <textarea value={editingNoteText} onChange={(e) => setEditingNoteText(e.target.value)} className="w-full border border-zinc-200 rounded-xl p-3 bg-zinc-50 focus:ring-2 focus:ring-zinc-900 outline-none text-lg" rows={3} />
-                  <div className="flex gap-2">
-                    <button onClick={handleSaveEditedNote} className="bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1 font-bold"><Check className="w-4 h-4" /> שמור</button>
-                    <button onClick={() => setEditingNoteId(null)} className="bg-zinc-100 text-zinc-600 px-4 py-2 rounded-lg text-sm font-medium">ביטול</button>
+        {/* Process Images */}
+        <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-lg font-semibold text-zinc-900">תמונות תהליך</label>
+            <button type="button" onClick={() => processImagesInputRef.current?.click()} className="flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-zinc-900 bg-zinc-100 px-3 py-1.5 rounded-full">
+              <Plus className="w-4 h-4" /> הוסף תמונות
+            </button>
+            <input type="file" accept="image/*" multiple ref={processImagesInputRef} onChange={handleProcessImagesUpload} className="hidden" />
+          </div>
+          {(recipe.process_images || []).length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {recipe.process_images!.map((img, idx) => {
+                const url = typeof img === 'string' ? img : img.url;
+                const caption = typeof img === 'string' ? '' : img.caption || '';
+                return (
+                  <div key={idx} className="flex flex-col gap-2">
+                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-zinc-200">
+                      <img src={url} alt={`תהליך ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => removeProcessImage(idx)} className="absolute top-2 left-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/70 backdrop-blur-sm">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <input type="text" value={caption} onChange={(e) => updateProcessImageCaption(idx, e.target.value)} placeholder="הוסף תיאור..." className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-zinc-50" />
                   </div>
-                </div>
-              ) : (
-                <>
-                  <p className="text-zinc-800 leading-relaxed text-lg text-right">{note.text}</p>
-                  <div className="absolute top-5 left-5 flex gap-1 print:hidden">
-                    <button onClick={() => { setEditingNoteId(note.id); setEditingNoteText(note.text); }} className="p-2.5 text-zinc-400 hover:text-zinc-900 bg-zinc-50 rounded-full transition-all"><Edit3 className="w-5 h-5" /></button>
-                    <button onClick={() => onUpdateRecipe({ ...recipe, notes: recipe.notes.filter(n => n.id !== note.id) })} className="p-2.5 text-zinc-400 hover:text-red-600 bg-red-50 rounded-full transition-all"><Trash2 className="w-5 h-5" /></button>
-                  </div>
-                </>
-              )}
+                );
+              })}
             </div>
-          ))}
+          ) : (
+            <p className="text-zinc-500 text-sm italic">טרם נוספו תמונות תהליך.</p>
+          )}
+        </div>
+        
+        {/* REFERENCES */}
+        <div className="bg-white border border-zinc-200 rounded-3xl p-6 shadow-sm space-y-6">
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-lg font-semibold text-zinc-900">REFERENCES</label>
+            <button type="button" onClick={addReferenceVideo} className="flex items-center gap-1 text-sm font-medium text-zinc-600 hover:text-zinc-900 bg-zinc-100 px-3 py-1.5 rounded-full">
+              <Plus className="w-4 h-4" /> הוסף
+            </button>
+          </div>
+          <div className="space-y-4">
+            {(recipe.reference_videos || []).map((video, idx) => (
+              <div key={idx} className="flex gap-4 items-start bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
+                {video.thumbnailUrl && (
+                  <div className="w-32 flex-shrink-0 rounded-xl overflow-hidden aspect-video bg-zinc-200">
+                    <img src={video.thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="flex-1 space-y-3">
+                  <div className="relative">
+                    <input type="text" value={video.url} onChange={(e) => updateReferenceVideo(idx, 'url', e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white pr-10" placeholder="כתובת URL (יוטיוב, בלוג, מאמר...)" />
+                    {fetchingVideoIdx === idx && (
+                      <div className="absolute left-3 top-2.5">
+                        <Loader2 className="w-5 h-5 text-zinc-400 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <input type="text" value={video.channelName || ''} onChange={(e) => updateReferenceVideo(idx, 'channelName', e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white" placeholder="שם הערוץ (אופציונלי)" />
+                  <input type="text" value={video.note} onChange={(e) => updateReferenceVideo(idx, 'note', e.target.value)} className="w-full border border-zinc-200 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white" placeholder="תיאור (למשל: מקור עיקרי, טכניקת לישה)" />
+                </div>
+                <button type="button" onClick={() => removeReferenceVideo(idx)} className="p-3 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-4 pt-4">
+          <button type="button" onClick={onCancel} className="flex-1 py-4 px-4 border border-zinc-200 rounded-2xl shadow-sm text-base font-medium text-zinc-700 bg-white hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all active:scale-[0.98]">ביטול</button>
+          <button type="button" onClick={handleSave} className="flex-1 flex justify-center items-center gap-2 py-4 px-4 border border-transparent rounded-2xl shadow-sm text-base font-medium text-white bg-zinc-900 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all active:scale-[0.98]">
+            <Save className="w-6 h-6" /> שמור מתכון
+          </button>
         </div>
       </div>
-
-      <style>{`
-        @media print {
-          .print\\:hidden, button, input { display: none !important; }
-          body { padding: 0; background: white; font-size: 11pt; -webkit-print-color-adjust: exact; direction: rtl; }
-          .container { border: none !important; padding: 0 !important; }
-          .max-w-3xl { max-width: 100% !important; }
-          h1, h2, p, li { text-align: right !important; }
-        }
-      `}</style>
     </div>
   );
 }
