@@ -71,7 +71,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
     return groups;
   }, [scaledIngredients]);
 
-  // לוגיקת סכימה (Aggregation) - משופרת למניעת כפילויות
+  // לוגיקת סכימה (Aggregation)
   const aggregatedIngredients = useMemo(() => {
     const summary: Record<string, { amount: number, unit: string, item: string }> = {};
     scaledIngredients.forEach(ing => {
@@ -114,6 +114,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
 
         if (ing) {
           const formattedAmount = ing.amount.toFixed(ing.amount % 1 === 0 ? 0 : 2);
+          // ללא הדגשה וללא רקע - זהה לחלוטין לטקסט ההוראות
           return (
             <span key={i} className="text-zinc-800 text-lg mx-0.5">
               {formattedAmount} {ing.unit} {ing.item}
@@ -177,8 +178,8 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #18181b; max-width: 800px; margin: 0 auto; padding: 2rem; background: #fafafa; text-align: right; }
     .container { background: white; padding: 2.5rem; border-radius: 1.5rem; border: 1px solid #e4e4e7; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-    h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; border-bottom: 2px solid #f4f4f5; padding-bottom: 10px; }
-    .group-title { font-weight: bold; margin-top: 15px; border-bottom: 2px solid #a1a1aa; display: inline-block; padding-bottom: 2px; }
+    h1 { font-size: 2.5rem; font-weight: 800; border-bottom: 2px solid #f4f4f5; padding-bottom: 10px; }
+    .group-title { font-weight: bold; margin-top: 20px; border-bottom: 2px solid #a1a1aa; display: inline-block; padding-bottom: 2px; }
     ul { list-style: none; padding: 0; }
     li { border-bottom: 1px solid #f1f1f1; padding: 8px 0; }
   </style>
@@ -283,25 +284,6 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
             <button key={tag} onClick={() => onTagClick(tag)} className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-zinc-100 text-zinc-800 hover:bg-zinc-200">{tag}</button>
           ))}
         </div>
-        
-        {recipe.linkedTechniques && recipe.linkedTechniques.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mt-4">
-            <BookOpen className="w-5 h-5 text-zinc-400" />
-            {recipe.linkedTechniques.map((link, idx) => {
-              const techId = typeof link === 'string' ? link : link.techniqueId;
-              const sectionId = typeof link === 'string' ? undefined : link.sectionId;
-              const tech = techniques.find(t => t.id === techId);
-              if (!tech) return null;
-              const section = sectionId ? tech.sections?.find(s => s.id === sectionId) : null;
-              return (
-                <button key={idx} onClick={() => onSelectTechnique(techId, sectionId)} className="bg-zinc-100 border border-zinc-200 text-sm font-medium text-zinc-700 rounded-xl px-3 py-1.5 hover:bg-zinc-200 flex flex-col items-start">
-                  <span>{tech.title}</span>
-                  {section && <span className="text-[10px] text-zinc-400 font-bold">({section.title})</span>}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* Info Boxes */}
@@ -331,7 +313,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 print:hidden">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold text-zinc-900">מרכיבים</h2>
-            {/* כפתור "רשימה לסופר" */}
+            {/* כפתור "רשימה לסופר" מעודכן ופשוט */}
             <button 
               onClick={() => setShowSummary(!showSummary)}
               className={`px-4 py-2 rounded-xl border flex items-center gap-2 text-sm font-bold transition-all shadow-sm ${showSummary ? 'bg-zinc-100 text-zinc-900 border-zinc-300' : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'}`}
@@ -371,15 +353,14 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
             </ul>
           </div>
         ) : (
-          <div className="space-y-8">
-            {Object.entries(groupedIngredients).map(([group, ings]) => (
-              <div key={group} className="space-y-3">
-                {/* קו אופקי אפור עדין מעל הכותרת */}
+          <div className="space-y-12">
+            {Object.entries(groupedIngredients).map(([group, ings], gIdx) => (
+              <div key={group} className="space-y-6">
+                {/* קו אופקי עדין מעל כל קבוצה (חוץ מהראשונה) */}
+                {gIdx > 0 && <hr className="border-zinc-200" />}
+                
                 {group !== 'כללי' && (
-                  <hr className="border-zinc-200 mb-4" />
-                )}
-                {group !== 'כללי' && (
-                  /* כותרת קבוצה בעיצוב מבוקש - קו תחתון אפור כהה ופונט מרכיבים */
+                  /* כותרת קבוצה באותו גופן של המרכיבים עם קו תחתון אפור כהה */
                   <div className="w-fit">
                     <h3 className="text-lg font-bold text-zinc-900 border-b-2 border-zinc-400 pb-0.5 mb-2">{group}</h3>
                   </div>
@@ -405,8 +386,8 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         <div className="space-y-10">
           {(recipe.steps || []).map((step, idx) => (
             <div key={idx} className="flex flex-row gap-5 items-start">
-              {/* החזרה לצבע המקורי: רקע אפור בהיר וטקסט שחור */}
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-100 text-zinc-900 flex items-center justify-center font-bold text-lg border">
+              {/* החזרה לצבע המקורי: רקע אפור בהיר וטקסט שחור עם מסגרת */}
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-zinc-100 text-zinc-900 flex items-center justify-center font-bold text-lg border border-zinc-200">
                 {idx + 1}
               </div>
               <div className="text-zinc-800 leading-relaxed pt-1 text-lg flex-1 text-right">
@@ -432,7 +413,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
         </div>
       )}
 
-      {/* REFERENCES */}
+      {/* REFERENCES - שיפור לחיצות ויוטיוב */}
       {recipe.reference_videos && recipe.reference_videos.length > 0 && (
         <div className="border-t border-zinc-200 pt-10 mb-10 space-y-6 print:hidden">
           <h2 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><Video className="w-6 h-6" /> REFERENCES</h2>
@@ -440,7 +421,7 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
             {recipe.reference_videos.map((video, idx) => {
               const yt = getYoutubeData(video.url);
               return (
-                <div key={idx} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+                <div key={idx} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm flex flex-col group/card hover:border-zinc-300 transition-colors">
                   {yt ? (
                     <div className="aspect-video w-full">
                       <iframe width="100%" height="100%" src={yt.embed} frameBorder="0" allowFullScreen></iframe>
@@ -450,8 +431,17 @@ export function RecipeView({ recipe, recipes, techniques, onBack, onUpdateRecipe
                       <Link className="text-zinc-400 w-8 h-8" />
                     </a>
                   )}
-                  <div className="p-3 bg-zinc-50 flex-1">
-                    <p className="text-xs text-zinc-600 line-clamp-2">{video.note}</p>
+                  <div className="p-3 bg-zinc-50 flex-1 flex flex-col gap-2">
+                    {/* הפכתי את כל הכפתור והמלל לאזור לחיץ וברור */}
+                    <a 
+                      href={yt ? yt.direct : video.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-[10px] font-bold text-zinc-900 bg-white border border-zinc-200 px-2 py-2 rounded text-center uppercase hover:bg-zinc-100 transition-colors shadow-sm active:scale-95"
+                    >
+                      {yt ? 'Open in YouTube' : 'Open Source Link'}
+                    </a>
+                    <p className="text-xs text-zinc-600 line-clamp-2 px-1">{video.note}</p>
                   </div>
                 </div>
               );
