@@ -19,19 +19,16 @@ export async function parseRecipeWithAI(rawText: string): Promise<AIParsedRecipe
   const ai = new GoogleGenAI({ apiKey });
 
   const systemInstruction = `Role: Expert Culinary Data Architect.
-Task: Convert raw text into a structured recipe JSON object with smart grouping and ingredient injection.
+Task: Convert raw text into a structured recipe JSON object with smart ingredient grouping.
 
 Language Rule: 
 IMPORTANT: Maintain the original language of the input text (usually Hebrew). Use it for all text fields.
 
 Core Logic Rules:
-1. Grouping: Identify subheaders in the ingredient list (e.g., "לבצק", "למלית"). Assign these to the "group" field. If no subheader exists, leave "group" empty ("").
-2. Smart Ingredient Injection: In the "steps" array, wrap every mention of an ingredient from the list in double brackets.
-   - If the ingredient has a group: Use [[group:item]] (e.g., [[בצק:חמאה]]).
-   - If the ingredient has no group: Use [[item]] (e.g., [[מלח]]).
-3. Consistency: The name inside [[ ]] must match the "item" field EXACTLY.
-4. Cleaning: Remove social media tags, sponsors, and emojis from the recipe content.
-5. Standardize: Units should be consistent (g, ml, cups, tsp, tbsp).
+1. Grouping: Identify subheaders in the ingredient list (e.g., "לבצק", "למלית", "לציפוי"). Assign these to the "group" field for each related ingredient. If no subheader exists for an ingredient, leave the "group" field empty ("").
+2. Steps: Extract the preparation steps as clean text. DO NOT add any special formatting, double brackets, or tags.
+3. Cleaning: Remove social media tags, sponsors, and emojis from the recipe content.
+4. Standardize: Units should be consistent (g, ml, cups, tsp, tbsp).
 
 Constraint: Return ONLY the JSON object. No conversational text.`;
 
@@ -54,7 +51,7 @@ Constraint: Return ONLY the JSON object. No conversational text.`;
                 item: { type: Type.STRING, description: "Name of the ingredient" },
                 amount: { type: Type.NUMBER },
                 unit: { type: Type.STRING },
-                group: { type: Type.STRING, description: "Subsection like 'Dough' or 'Filling'. Empty if none." },
+                group: { type: Type.STRING, description: "Subsection title if exists (e.g., 'Dough', 'Filling')." },
               },
               required: ["item", "amount", "unit"],
             },
@@ -62,7 +59,7 @@ Constraint: Return ONLY the JSON object. No conversational text.`;
           steps: { 
             type: Type.ARRAY, 
             items: { type: Type.STRING },
-            description: "Steps with injected ingredients in [[group:item]] or [[item]] format"
+            description: "Clean preparation steps as strings"
           },
           culinary_notes: { type: Type.STRING },
           prep_info: { type: Type.STRING },
