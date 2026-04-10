@@ -46,6 +46,48 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
     };
   }, [requestWakeLock, releaseWakeLock]);
 
+  // פונקציית הזרקת כמויות חכמה המותאמת למצב בישול
+  const parseInstructions = (text: string) => {
+    if (!text) return '';
+    const parts = text.split(/(\[\[.*?\]\])/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('[[') && part.endsWith(']]')) {
+        const content = part.slice(2, -2).trim();
+        let targetItem: string;
+        let targetGroup: string | null = null;
+
+        // תמיכה בשיוך קבוצה [[קבוצה:מצרך]]
+        if (content.includes(':')) {
+          const splitContent = content.split(':');
+          targetGroup = splitContent[0].trim().toLowerCase();
+          targetItem = splitContent[1].trim().toLowerCase();
+        } else {
+          targetItem = content.toLowerCase();
+        }
+
+        const ing = recipe.ingredients.find(si => {
+          const nameMatch = si.item.toLowerCase().trim() === targetItem;
+          const groupMatch = targetGroup 
+            ? (si.group?.toLowerCase().trim() === targetGroup)
+            : true;
+          return nameMatch && groupMatch;
+        });
+
+        if (ing) {
+          const formattedAmount = ing.amount.toFixed(ing.amount % 1 === 0 ? 0 : 2);
+          // שומר על הפונט והגודל המדויק של מצב הבישול ללא שינוי ויזואלי מלבד הטקסט עצמו
+          return (
+            <span key={i}>
+              {formattedAmount} {ing.unit} {ing.item}
+            </span>
+          );
+        }
+        return part;
+      }
+      return part;
+    });
+  };
+
   const totalSteps = recipe.steps.length;
 
   const handleNext = () => {
@@ -104,19 +146,19 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
               </ul>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto w-full text-center animate-in slide-in-from-left-8 duration-300">
+            <div className="max-w-4xl mx-auto w-full text-center animate-in slide-in-from-left-8 duration-300 px-4">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-zinc-800 text-zinc-400 font-bold text-3xl mb-12">
                 {currentStep + 1}
               </div>
-              <p className="text-5xl md:text-6xl font-medium leading-tight tracking-tight">
-                {recipe.steps[currentStep]}
-              </p>
+              <div className="text-5xl md:text-6xl font-medium leading-tight tracking-tight text-white">
+                {parseInstructions(recipe.steps[currentStep])}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Navigation Footer - Optimized Sizing */}
+      {/* Navigation Footer */}
       <div className="p-6 border-t border-zinc-800 grid grid-cols-2 gap-4 pb-safe">
         <button
           onClick={handlePrev}
