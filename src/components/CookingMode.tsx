@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Recipe } from '../types';
 import { X, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 
@@ -10,6 +10,14 @@ interface CookingModeProps {
 export function CookingMode({ recipe, onExit }: CookingModeProps) {
   const [currentStep, setCurrentStep] = useState(-1); // -1 is ingredients view
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // פונקציה לאיפוס גלילה במעבר בין שלבים
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo(0, 0);
+    }
+  }, [currentStep]);
 
   const requestWakeLock = useCallback(async () => {
     try {
@@ -46,7 +54,6 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
     };
   }, [requestWakeLock, releaseWakeLock]);
 
-  // פונקציית הזרקת כמויות חכמה המותאמת למצב בישול
   const parseInstructions = (text: string) => {
     if (!text) return '';
     const parts = text.split(/(\[\[.*?\]\])/g);
@@ -56,7 +63,6 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
         let targetItem: string;
         let targetGroup: string | null = null;
 
-        // תמיכה בשיוך קבוצה [[קבוצה:מצרך]]
         if (content.includes(':')) {
           const splitContent = content.split(':');
           targetGroup = splitContent[0].trim().toLowerCase();
@@ -75,7 +81,6 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
 
         if (ing) {
           const formattedAmount = ing.amount.toFixed(ing.amount % 1 === 0 ? 0 : 2);
-          // שומר על הפונט והגודל המדויק של מצב הבישול ללא שינוי ויזואלי מלבד הטקסט עצמו
           return (
             <span key={i}>
               {formattedAmount} {ing.unit} {ing.item}
@@ -103,7 +108,7 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-zinc-950 text-white z-50 flex flex-col h-[100dvh] rtl text-right" dir="rtl">
+    <div className="fixed inset-0 bg-zinc-950 text-white z-50 flex flex-col h-[100dvh] rtl text-right font-sans" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-zinc-800">
         <h1 className="text-2xl font-bold truncate pl-4">{recipe.name}</h1>
@@ -117,10 +122,16 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col">
+      <div 
+        ref={scrollContainerRef}
+        className="flex-1 overflow-y-auto p-6 flex flex-col scroll-smooth"
+      >
         <div className="flex-1 flex flex-col justify-center">
           {currentStep === -1 ? (
-            <div className="max-w-2xl mx-auto w-full animate-in fade-in duration-300">
+            <div 
+              key="ingredients-view"
+              className="max-w-2xl mx-auto w-full animate-in fade-in duration-500"
+            >
               {recipe.prep_info && (
                 <div className="mb-10 bg-red-950/30 border border-red-900/50 rounded-3xl p-6">
                   <h3 className="text-red-400 font-bold uppercase tracking-wider text-sm mb-3 flex items-center gap-2">
@@ -146,7 +157,10 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
               </ul>
             </div>
           ) : (
-            <div className="max-w-4xl mx-auto w-full text-center animate-in slide-in-from-left-8 duration-300 px-4">
+            <div 
+              key={`step-${currentStep}`}
+              className="max-w-4xl mx-auto w-full text-center animate-in fade-in slide-in-from-left-8 duration-500 px-4"
+            >
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-zinc-800 text-zinc-400 font-bold text-3xl mb-12">
                 {currentStep + 1}
               </div>
@@ -159,7 +173,7 @@ export function CookingMode({ recipe, onExit }: CookingModeProps) {
       </div>
 
       {/* Navigation Footer */}
-      <div className="p-6 border-t border-zinc-800 grid grid-cols-2 gap-4 pb-safe">
+      <div className="p-6 border-t border-zinc-800 grid grid-cols-2 gap-4 pb-safe bg-zinc-950">
         <button
           onClick={handlePrev}
           disabled={currentStep === -1}
