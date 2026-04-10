@@ -2,6 +2,7 @@ export interface Ingredient {
   item: string;
   amount: number;
   unit: string;
+  group?: string; // שדה חדש: מאפשר שיוך מצרך לקבוצה (למשל: "בצק", "קרם", "פירורים")
 }
 
 export interface RecipeNote {
@@ -14,17 +15,16 @@ export interface ReferenceLink {
   url: string;
   note: string;
   thumbnailUrl?: string;
-  channelName?: string; // השדה שמאפשר שמירה וחיפוש של שם הערוץ
+  channelName?: string; 
 }
 
-// ממשק חדש למקטעים (Chunks) בתוך טכניקה
 export interface TechniqueSection {
   id: string;
   title: string;
   content: string;
-  image_base64?: string; // עודכן לשם אחיד: תמיכה בתמונה לכל צ'אנק
-  references?: ReferenceLink[]; // שינוי למערך המאפשר הוספת מקורות מידע מרובים לכל צ'אנק
-  isExpanded?: boolean; // לצורך ניהול מצב הפתיחה/סגירה בעורך ובתצוגה
+  image_base64?: string;
+  references?: ReferenceLink[];
+  isExpanded?: boolean;
 }
 
 export interface Technique {
@@ -33,9 +33,9 @@ export interface Technique {
   overview: string;
   content: string;
   tags: string[];
-  image_base64?: string; // עודכן לשם אחיד
+  image_base64?: string;
   reference_videos?: ReferenceLink[];
-  sections?: TechniqueSection[]; // הוספת מערך המקטעים החדש
+  sections?: TechniqueSection[];
 }
 
 export interface ProcessImage {
@@ -43,26 +43,24 @@ export interface ProcessImage {
   caption?: string;
 }
 
-// ממשק חדש לניהול קשר בין מתכון לטכניקה (עם תמיכה בסעיף ספציפי)
 export interface LinkedTechnique {
   techniqueId: string;
-  sectionId?: string; // אופציונלי - מאפשר לקשר לחלק ספציפי בטכניקה
+  sectionId?: string;
 }
 
 export interface Recipe {
   id: string;
   name: string;
   tags: string[];
-  servings_base: string | number; // עודכן לתמיכה במלל חופשי (למשל גודל תבנית)
-  yield_type?: 'servings' | 'pan'; // שדה חדש לזיהוי סוג הכמות (מנות או תבנית)
+  servings_base: string | number;
+  yield_type?: 'servings' | 'pan';
   ingredients: Ingredient[];
   steps: string[];
   notes: RecipeNote[];
   culinary_notes?: string;
   original_ingredients?: Ingredient[];
   original_steps?: string[];
-  image_base64?: string; // עודכן לשם אחיד
-  // עדכון השדה לתמיכה גם ב-ID פשוט (תאימות לאחור) וגם באובייקט קישור מפורט
+  image_base64?: string;
   linkedTechniques?: (string | LinkedTechnique)[];
   linkedRecipes?: string[];
   prep_info?: string;
