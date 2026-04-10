@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 export interface AIParsedRecipe {
   title: string;
   servings: number;
-  ingredients: { item: string; amount: number; unit: string }[];
+  ingredients: { item: string; amount: number; unit: string; group?: string }[];
   steps: string[];
   culinary_notes?: string;
   prep_info?: string;
@@ -18,25 +18,24 @@ export async function parseRecipeWithAI(rawText: string): Promise<AIParsedRecipe
 
   const ai = new GoogleGenAI({ apiKey });
 
-  // עדכנתי את ההנחיה שתהיה קשיחה יותר לגבי שפת המקור
   const systemInstruction = `Role: Expert Culinary Data Architect.
-Task: Convert raw text into a structured recipe JSON object.
+Task: Convert raw text into a structured recipe JSON object with smart grouping and ingredient injection.
 
 Language Rule: 
-IMPORTANT: Maintain the original language of the input text. 
-- If the input is in HEBREW, the JSON response MUST be in HEBREW (title, ingredients, steps, notes).
-- Do not translate Hebrew to English.
-- Keep professional culinary terms in the original language.
+IMPORTANT: Maintain the original language of the input text (usually Hebrew). Use it for all text fields.
 
-Input Handling:
-1. Clean the text from social media/sponsors.
-2. Standardize units (g, ml, cups, tsp, tbsp).
-3. Extract crucial preparation info and YouTube reference links.
+Core Logic Rules:
+1. Grouping: Identify subheaders in the ingredient list (e.g., "לבצק", "למלית"). Assign these to the "group" field. If no subheader exists, leave "group" empty ("").
+2. Smart Ingredient Injection: In the "steps" array, wrap every mention of an ingredient from the list in double brackets.
+   - If the ingredient has a group: Use [[group:item]] (e.g., [[בצק:חמאה]]).
+   - If the ingredient has no group: Use [[item]] (e.g., [[מלח]]).
+3. Consistency: The name inside [[ ]] must match the "item" field EXACTLY.
+4. Cleaning: Remove social media tags, sponsors, and emojis from the recipe content.
+5. Standardize: Units should be consistent (g, ml, cups, tsp, tbsp).
 
 Constraint: Return ONLY the JSON object. No conversational text.`;
 
   const response = await ai.models.generateContent({
-    // חזרנו למודל המקורי שזוהה במערכת שלך, אך עם ההוראות החדשות
     model: "gemini-3-flash-preview", 
     contents: rawText,
     config: {
@@ -45,21 +44,26 @@ Constraint: Return ONLY the JSON object. No conversational text.`;
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          title: { type: Type.STRING, description: "Recipe Name in the input language" },
+          title: { type: Type.STRING, description: "Recipe Name in the original language" },
           servings: { type: Type.INTEGER, description: "Number of servings" },
           ingredients: {
             type: Type.ARRAY,
             items: {
               type: Type.OBJECT,
               properties: {
-                item: { type: Type.STRING },
+                item: { type: Type.STRING, description: "Name of the ingredient" },
                 amount: { type: Type.NUMBER },
                 unit: { type: Type.STRING },
+                group: { type: Type.STRING, description: "Subsection like 'Dough' or 'Filling'. Empty if none." },
               },
               required: ["item", "amount", "unit"],
             },
           },
-          steps: { type: Type.ARRAY, items: { type: Type.STRING } },
+          steps: { 
+            type: Type.ARRAY, 
+            items: { type: Type.STRING },
+            description: "Steps with injected ingredients in [[group:item]] or [[item]] format"
+          },
           culinary_notes: { type: Type.STRING },
           prep_info: { type: Type.STRING },
           reference_videos: {
