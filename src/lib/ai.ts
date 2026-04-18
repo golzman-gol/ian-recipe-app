@@ -18,20 +18,23 @@ export async function parseRecipeWithAI(rawText: string): Promise<AIParsedRecipe
 
   const ai = new GoogleGenAI({ apiKey });
 
-  const systemInstruction = `Role: Expert Culinary Data Architect.
-Task: Convert raw text into a structured recipe JSON object.
+  const systemInstruction = `Role: Expert Culinary Data Architect & Professional Translator.
+Task: Convert raw text (English or Hebrew) into a structured recipe JSON object strictly in HEBREW.
 
 Language Rule: 
-IMPORTANT: Maintain the original language of the input text (usually Hebrew). Use it for all text fields.
+IMPORTANT: The entire output MUST be in HEBREW. If the source text is in English, translate the title, ingredients, groups, and steps to natural-sounding culinary Hebrew.
+
+Measurement & Unit Rules (Force Metric):
+1. Convert all Imperial measurements to Metric (e.g., lbs/oz to grams/kg).
+2. Use Hebrew unit names: "גרם" (g), "מ\"ל" (ml), "כוס" (cup), "כף" (tbsp), "כפית" (tsp), "יחידה" (unit).
+3. Temperature: Always convert Fahrenheit to Celsius (צלזיוס).
 
 Core Logic Rules:
-1. Ingredient Grouping: Identify subheaders in the ingredient list (e.g., "לבצק", "למלית"). Assign these to the "group" field for each related ingredient. If no subheader exists, leave "group" empty ("").
-2. Plain Text Steps (CRITICAL): Extract the preparation steps as CLEAN, PLAIN TEXT only. 
+1. Ingredient Grouping: Identify subheaders (e.g., "For the dough") and assign these to the "group" field in Hebrew (e.g., "בצק"). If no subheader exists, leave "group" empty ("").
+2. Plain Text Steps (CRITICAL): Extract the preparation steps as CLEAN, PLAIN TEXT only in Hebrew. 
    - ABSOLUTELY NO double brackets [[ ]] anywhere in the steps.
    - DO NOT inject ingredients, amounts, or units into the steps text.
-   - The steps should read like a normal paragraph, exactly as written in the source but cleaned.
 3. Data Cleaning: Remove social media tags, sponsors, credits, and emojis.
-4. Standardization: Ensure units are consistent (g, ml, cups, tsp, tbsp).
 
 Constraint: Return ONLY the JSON object. No conversational text.`;
 
@@ -44,17 +47,17 @@ Constraint: Return ONLY the JSON object. No conversational text.`;
       responseSchema: {
         type: Type.OBJECT,
         properties: {
-          title: { type: Type.STRING },
+          title: { type: Type.STRING, description: "Recipe Name in Hebrew" },
           servings: { type: Type.INTEGER },
           ingredients: {
             type: Type.ARRAY,
             items: {
               type: Type.OBJECT,
               properties: {
-                item: { type: Type.STRING },
+                item: { type: Type.STRING, description: "Ingredient name in Hebrew" },
                 amount: { type: Type.NUMBER },
-                unit: { type: Type.STRING },
-                group: { type: Type.STRING, description: "Subsection title from source text (e.g., 'לבצק')" },
+                unit: { type: Type.STRING, description: "Metric unit in Hebrew (גרם, כוס, כף, וכו')" },
+                group: { type: Type.STRING, description: "Subsection title in Hebrew (e.g., 'בצק')" },
               },
               required: ["item", "amount", "unit"],
             },
@@ -62,7 +65,7 @@ Constraint: Return ONLY the JSON object. No conversational text.`;
           steps: { 
             type: Type.ARRAY, 
             items: { type: Type.STRING },
-            description: "Plain text steps. No brackets, no tags, no ingredient injection."
+            description: "Plain text steps in Hebrew. No brackets, no ingredient injection."
           },
           culinary_notes: { type: Type.STRING },
           prep_info: { type: Type.STRING },
