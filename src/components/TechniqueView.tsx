@@ -1,4 +1,3 @@
-npm install rehype-raw
 import { useState, useEffect } from 'react';
 import { Technique, Recipe } from '../types';
 import { ArrowLeft, Edit2, BookOpen, Trash2, Video, Link as LinkIcon, Download, ChevronDown, ChevronUp, Youtube, ExternalLink, FileText, Clock, ArrowUp } from 'lucide-react';
