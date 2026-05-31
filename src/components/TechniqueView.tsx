@@ -1,7 +1,9 @@
+npm install rehype-raw
 import { useState, useEffect } from 'react';
 import { Technique, Recipe } from '../types';
 import { ArrowLeft, Edit2, BookOpen, Trash2, Video, Link as LinkIcon, Download, ChevronDown, ChevronUp, Youtube, ExternalLink, FileText, Clock, ArrowUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw'; // הייבוא החדש שמאפשר קריאת תגיות HTML
 
 interface TechniqueViewProps {
   technique: Technique;
@@ -204,7 +206,8 @@ export function TechniqueView({ technique, recipes, onBack, onEdit, onDelete, on
                 )}
 
                 <div className="prose prose-zinc prose-rtl max-w-none text-zinc-800 leading-relaxed text-right text-lg">
-                  <ReactMarkdown>{section.content}</ReactMarkdown>
+                  {/* כאן הוספנו את הפלאגין כדי לאפשר רינדור של תגיות HTML כמו <u> */}
+                  <ReactMarkdown rehypePlugins={[rehypeRaw]}>{section.content}</ReactMarkdown>
                 </div>
 
                 {section.references && section.references.length > 0 && (
